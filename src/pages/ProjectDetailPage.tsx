@@ -17,47 +17,9 @@ import { RECEIVABLE_STATUS_LABELS, PAYABLE_STATUS_LABELS, EXPENSE_CATEGORY_LABEL
 import { toast } from 'sonner'
 import { useModules } from '@/contexts/ModuleContext'
 import { ProjectProgressTab } from '@/components/ProjectProgressTab'
-
-const statusColor: Record<string, string> = {
-  '洽談中': 'bg-yellow-100 text-yellow-800',
-  '進行中': 'bg-blue-100 text-blue-800',
-  '完工': 'bg-green-100 text-green-800',
-  '結案': 'bg-gray-100 text-gray-800',
-  '取消': 'bg-red-100 text-red-800',
-}
+import { StatusBadge } from '@/components/StatusBadge'
 
 const allStatuses: ProjectStatus[] = ['洽談中', '進行中', '完工', '結案', '取消']
-
-const quoteStatusStyle: Record<string, string> = {
-  '草稿': 'bg-gray-100 text-gray-800',
-  '已送出': 'bg-blue-100 text-blue-800',
-  '已接受': 'bg-green-100 text-green-800',
-  '已拒絕': 'bg-red-100 text-red-800',
-  '已過期': 'bg-yellow-100 text-yellow-800',
-}
-
-const receivableStatusStyle: Record<string, string> = {
-  pending: 'bg-gray-100 text-gray-800',
-  invoiced: 'bg-blue-100 text-blue-800',
-  partial: 'bg-yellow-100 text-yellow-800',
-  paid: 'bg-green-100 text-green-800',
-  overdue: 'bg-red-100 text-red-800',
-  cancelled: 'bg-gray-100 text-gray-500',
-}
-
-const payableStatusStyle: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  partial: 'bg-blue-100 text-blue-800',
-  paid: 'bg-green-100 text-green-800',
-  cancelled: 'bg-gray-100 text-gray-500',
-}
-
-const expenseStatusStyle: Record<string, string> = {
-  unpaid: 'bg-yellow-100 text-yellow-800',
-  paid: 'bg-green-100 text-green-800',
-  partial: 'bg-blue-100 text-blue-800',
-  cancelled: 'bg-gray-100 text-gray-500',
-}
 const expenseStatusLabel: Record<string, string> = {
   unpaid: '未付', paid: '已付', partial: '部分', cancelled: '取消',
 }
@@ -119,7 +81,7 @@ export default function ProjectDetailPage() {
       <div className="flex items-center gap-3">
         <Link to="/projects"><Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button></Link>
         <h1 className="text-2xl font-bold">{project.name}</h1>
-        <Badge className={statusColor[project.status] ?? ''} variant="secondary">{project.status}</Badge>
+        <StatusBadge status={project.status} />
       </div>
 
       {/* Tab bar */}
