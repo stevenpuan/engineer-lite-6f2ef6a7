@@ -2,22 +2,15 @@ import { useClients } from '@/hooks/useClients'
 import { useProjects } from '@/hooks/useProjects'
 import { useFinanceSummary } from '@/hooks/useFinanceSummary'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, FolderKanban, ArrowRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Users, FolderKanban, HardHat, Plus } from 'lucide-react'
 import { useDashboardMonth } from '@/hooks/useCoreExtras'
 import { cn } from '@/lib/utils'
 import { Link } from '@tanstack/react-router'
-import { Badge } from '@/components/ui/badge'
 import { useModules } from '@/contexts/ModuleContext'
 import { useProjectProgress, daysSince } from '@/hooks/useProgress'
 import { ProgressBar } from '@/components/ProjectProgressTab'
-
-const statusColor: Record<string, string> = {
-  '洽談中': 'bg-yellow-100 text-yellow-800',
-  '進行中': 'bg-blue-100 text-blue-800',
-  '完工': 'bg-green-100 text-green-800',
-  '結案': 'bg-gray-100 text-gray-800',
-  '取消': 'bg-red-100 text-red-800',
-}
+import { StatusBadge } from '@/components/StatusBadge'
 
 export default function DashboardPage() {
   const { data: clients = [] } = useClients()
@@ -44,40 +37,64 @@ export default function DashboardPage() {
   // 應付未付 = 應付總額 − 已付金額
   const totalPayables = financeSummary.reduce((s, f) => s + ((f.payable_total ?? 0) - (f.paid_total ?? 0)), 0)
 
+  const ongoingProjects = projects.filter(p => p.status !== '取消' && p.status !== '結案')
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">總覽</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold">總覽</h1>
+        <div className="flex gap-2">
+          <Button asChild size="sm"><Link to="/projects"><Plus className="mr-1 h-4 w-4" />案件</Link></Button>
+          <Button asChild size="sm" variant="outline"><Link to="/clients"><Plus className="mr-1 h-4 w-4" />客戶</Link></Button>
+          <Button asChild size="sm" variant="outline"><Link to="/quotes"><Plus className="mr-1 h-4 w-4" />報價</Link></Button>
+        </div>
+      </div>
+
+      {/* 財務重點：最重要的數字放最上面 */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <FinanceStat label="累計報價" value={totalQuoted} className="border-l-4 border-l-primary" />
+        <FinanceStat label="累計已收" value={totalReceived} className="border-l-4 border-l-status-done" valueClass="text-status-done" />
+        <FinanceStat label="累計支出" value={totalExpenses} className="border-l-4 border-l-accent" />
+        <FinanceStat label="應付未付" value={totalPayables} className="border-l-4 border-l-destructive" valueClass={totalPayables > 0 ? 'text-destructive' : undefined} />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">客戶數</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{clients.length}</div>
-          </CardContent>
-        </Card>
+        <Link to="/clients" className="block transition-transform hover:-translate-y-0.5">
+          <Card className="h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">客戶數</CardTitle>
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10"><Users className="h-4 w-4 text-primary" /></div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{clients.length}</div>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">案件總數</CardTitle>
-            <FolderKanban className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{projects.length}</div>
-          </CardContent>
-        </Card>
+        <Link to="/projects" className="block transition-transform hover:-translate-y-0.5">
+          <Card className="h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">案件總數</CardTitle>
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10"><FolderKanban className="h-4 w-4 text-primary" /></div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{ongoingProjects.length}</div>
+              <p className="text-xs text-muted-foreground">不含已結案與取消</p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">進行中</CardTitle>
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeProjects.length}</div>
-          </CardContent>
-        </Card>
+        <Link to="/projects" className="block transition-transform hover:-translate-y-0.5">
+          <Card className="h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">進行中</CardTitle>
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-accent/20"><HardHat className="h-4 w-4 text-accent" /></div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{activeProjects.length}</div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* 本月帳務（M6）*/}
