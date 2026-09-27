@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select('*')
         .eq('user_id', userId)
         .single()
-      setProfile(prof)
+      setProfile(prof as Profile | null)
 
       // Check platform admin
       const { data: admin } = await supabase
