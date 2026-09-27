@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from './AuthContext'
 
-type ModuleKey =
+export type ModuleKey =
   | 'clients' | 'quote' | 'receivable' | 'payable'
   | 'progress' | 'dashboard' | 'line'
   | 'dispatch' | 'vendor_billing' | 'contract' | 'invoice'
