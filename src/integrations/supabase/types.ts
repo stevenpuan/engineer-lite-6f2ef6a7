@@ -115,9 +115,12 @@ export type Database = {
           id: string
           is_overhead: boolean
           notes: string | null
+          ocr: Json | null
           payment_method: string | null
+          photo_path: string | null
           project_id: string | null
           receipt_no: string | null
+          seller_tax_id: string | null
           status: string
           tenant_id: string
           updated_at: string
@@ -132,9 +135,12 @@ export type Database = {
           id?: string
           is_overhead?: boolean
           notes?: string | null
+          ocr?: Json | null
           payment_method?: string | null
+          photo_path?: string | null
           project_id?: string | null
           receipt_no?: string | null
+          seller_tax_id?: string | null
           status?: string
           tenant_id: string
           updated_at?: string
@@ -149,9 +155,12 @@ export type Database = {
           id?: string
           is_overhead?: boolean
           notes?: string | null
+          ocr?: Json | null
           payment_method?: string | null
+          photo_path?: string | null
           project_id?: string | null
           receipt_no?: string | null
+          seller_tax_id?: string | null
           status?: string
           tenant_id?: string
           updated_at?: string
@@ -159,21 +168,142 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "expenses_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "expenses_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "tenant_id"]
           },
           {
-            foreignKeyName: "expenses_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "expenses_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "v_project_finance_summary"
-            referencedColumns: ["project_id"]
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expenses_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_progress"
+            referencedColumns: ["project_id", "tenant_id"]
           },
           {
             foreignKeyName: "expenses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      line_bindings: {
+        Row: {
+          bind_code: string | null
+          bound_at: string | null
+          code_expires_at: string | null
+          created_at: string
+          id: string
+          line_display_name: string | null
+          line_user_id: string | null
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bind_code?: string | null
+          bound_at?: string | null
+          code_expires_at?: string | null
+          created_at?: string
+          id?: string
+          line_display_name?: string | null
+          line_user_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bind_code?: string | null
+          bound_at?: string | null
+          code_expires_at?: string | null
+          created_at?: string
+          id?: string
+          line_display_name?: string | null
+          line_user_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "line_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      line_events: {
+        Row: {
+          created_at: string
+          event_type: string | null
+          id: number
+          line_user_id: string | null
+          payload: Json | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type?: string | null
+          id?: never
+          line_user_id?: string | null
+          payload?: Json | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string | null
+          id?: never
+          line_user_id?: string | null
+          payload?: Json | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "line_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      line_pending: {
+        Row: {
+          data: Json
+          expires_at: string
+          kind: string
+          line_user_id: string
+          tenant_id: string
+        }
+        Insert: {
+          data?: Json
+          expires_at?: string
+          kind: string
+          line_user_id: string
+          tenant_id: string
+        }
+        Update: {
+          data?: Json
+          expires_at?: string
+          kind?: string
+          line_user_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "line_pending_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -247,18 +377,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "payables_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "payables_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "tenant_id"]
           },
           {
-            foreignKeyName: "payables_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "payables_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "v_project_finance_summary"
-            referencedColumns: ["project_id"]
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "payables_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_progress"
+            referencedColumns: ["project_id", "tenant_id"]
           },
           {
             foreignKeyName: "payables_tenant_id_fkey"
@@ -325,6 +462,50 @@ export type Database = {
         }
         Relationships: []
       }
+      price_book: {
+        Row: {
+          created_at: string
+          id: string
+          last_used_at: string
+          name: string
+          tenant_id: string
+          unit: string | null
+          unit_price: number
+          updated_at: string
+          use_count: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_used_at?: string
+          name: string
+          tenant_id: string
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string
+          use_count?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_used_at?: string
+          name?: string
+          tenant_id?: string
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string
+          use_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_book_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -362,6 +543,146 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      progress_logs: {
+        Row: {
+          created_at: string
+          id: string
+          log_date: string
+          note: string | null
+          percent: number
+          project_id: string
+          reported_by: string | null
+          source: string
+          stage_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          log_date?: string
+          note?: string | null
+          percent: number
+          project_id: string
+          reported_by?: string | null
+          source?: string
+          stage_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          log_date?: string
+          note?: string | null
+          percent?: number
+          project_id?: string
+          reported_by?: string | null
+          source?: string
+          stage_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "progress_logs_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "progress_logs_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_finance_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "progress_logs_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_progress"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "progress_logs_stage_same_tenant"
+            columns: ["stage_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project_stages"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "progress_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_stages: {
+        Row: {
+          created_at: string
+          due_date: string | null
+          id: string
+          name: string
+          percent: number
+          project_id: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          name: string
+          percent?: number
+          project_id: string
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          name?: string
+          percent?: number
+          project_id?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_stages_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_stages_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_finance_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_stages_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_progress"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_stages_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -414,11 +735,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "projects_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: "projects_client_same_tenant"
+            columns: ["client_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "clients"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "tenant_id"]
           },
           {
             foreignKeyName: "projects_tenant_id_fkey"
@@ -480,7 +801,9 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_latest: boolean
           notes: string | null
+          parent_quote_id: string | null
           project_id: string
           quote_date: string
           quote_no: string | null
@@ -492,11 +815,14 @@ export type Database = {
           total: number
           updated_at: string
           valid_until: string | null
+          version: number
         }
         Insert: {
           created_at?: string
           id?: string
+          is_latest?: boolean
           notes?: string | null
+          parent_quote_id?: string | null
           project_id: string
           quote_date?: string
           quote_no?: string | null
@@ -508,11 +834,14 @@ export type Database = {
           total?: number
           updated_at?: string
           valid_until?: string | null
+          version?: number
         }
         Update: {
           created_at?: string
           id?: string
+          is_latest?: boolean
           notes?: string | null
+          parent_quote_id?: string | null
           project_id?: string
           quote_date?: string
           quote_no?: string | null
@@ -524,21 +853,36 @@ export type Database = {
           total?: number
           updated_at?: string
           valid_until?: string | null
+          version?: number
         }
         Relationships: [
           {
-            foreignKeyName: "quotes_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "quotes_parent_quote_id_fkey"
+            columns: ["parent_quote_id"]
             isOneToOne: false
-            referencedRelation: "projects"
+            referencedRelation: "quotes"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "quotes_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "quotes_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "quotes_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "v_project_finance_summary"
-            referencedColumns: ["project_id"]
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "quotes_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_progress"
+            referencedColumns: ["project_id", "tenant_id"]
           },
           {
             foreignKeyName: "quotes_tenant_id_fkey"
@@ -629,21 +973,200 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "receivables_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "receivables_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "tenant_id"]
           },
           {
-            foreignKeyName: "receivables_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "receivables_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "v_project_finance_summary"
-            referencedColumns: ["project_id"]
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "receivables_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_progress"
+            referencedColumns: ["project_id", "tenant_id"]
           },
           {
             foreignKeyName: "receivables_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stage_templates: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          stages: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          stages?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          stages?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tax_invoices: {
+        Row: {
+          buyer_tax_id: string | null
+          counterparty_name: string | null
+          counterparty_tax_id: string | null
+          created_at: string
+          deduct_note: string | null
+          deductible: boolean | null
+          direction: string
+          expense_id: string | null
+          id: string
+          invoice_date: string
+          invoice_no: string | null
+          notes: string | null
+          payable_id: string | null
+          period_key: number | null
+          photo_path: string | null
+          project_id: string | null
+          receivable_id: string | null
+          sales_amount: number
+          source: string
+          status: string
+          tax_amount: number
+          tax_type: string
+          tenant_id: string
+          total_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          buyer_tax_id?: string | null
+          counterparty_name?: string | null
+          counterparty_tax_id?: string | null
+          created_at?: string
+          deduct_note?: string | null
+          deductible?: boolean | null
+          direction: string
+          expense_id?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_no?: string | null
+          notes?: string | null
+          payable_id?: string | null
+          period_key?: number | null
+          photo_path?: string | null
+          project_id?: string | null
+          receivable_id?: string | null
+          sales_amount: number
+          source?: string
+          status?: string
+          tax_amount?: number
+          tax_type?: string
+          tenant_id: string
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          buyer_tax_id?: string | null
+          counterparty_name?: string | null
+          counterparty_tax_id?: string | null
+          created_at?: string
+          deduct_note?: string | null
+          deductible?: boolean | null
+          direction?: string
+          expense_id?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_no?: string | null
+          notes?: string | null
+          payable_id?: string | null
+          period_key?: number | null
+          photo_path?: string | null
+          project_id?: string | null
+          receivable_id?: string | null
+          sales_amount?: number
+          source?: string
+          status?: string
+          tax_amount?: number
+          tax_type?: string
+          tenant_id?: string
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_invoices_expense_same_tenant"
+            columns: ["expense_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "tax_invoices_payable_same_tenant"
+            columns: ["payable_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "payables"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "tax_invoices_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "tax_invoices_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_finance_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "tax_invoices_project_same_tenant"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_progress"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "tax_invoices_receivable_same_tenant"
+            columns: ["receivable_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "receivables"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "tax_invoices_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -781,11 +1304,142 @@ export type Database = {
           },
         ]
       }
+      v_project_progress: {
+        Row: {
+          last_report_at: string | null
+          overall_percent: number | null
+          project_id: string | null
+          stage_count: number | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      _line_issue_code: { Args: { _uid: string }; Returns: Json }
+      _line_members: {
+        Args: { _tenant: string }
+        Returns: {
+          bind_code: string
+          bound_at: string
+          code_expires_at: string
+          display_name: string
+          email: string
+          is_active: boolean
+          line_display_name: string
+          role: string
+          user_id: string
+        }[]
+      }
+      _line_unbind: { Args: { _uid: string }; Returns: undefined }
       current_tenant_id: { Args: never; Returns: string }
       has_module: { Args: { _key: string }; Returns: boolean }
       is_platform_admin: { Args: { _uid?: string }; Returns: boolean }
+      is_tenant_owner: { Args: never; Returns: boolean }
+      line_bind: {
+        Args: { _code: string; _display_name: string; _line_user_id: string }
+        Returns: Json
+      }
+      line_create_expense: {
+        Args: {
+          _amount: number
+          _category: string
+          _description: string
+          _expense_date?: string
+          _line_user_id: string
+          _ocr?: Json
+          _photo_path: string
+          _project_id: string
+          _receipt_no?: string
+          _seller_tax_id?: string
+          _vendor_name?: string
+        }
+        Returns: Json
+      }
+      line_ctx: {
+        Args: { _line_user_id: string }
+        Returns: {
+          display_name: string
+          role: string
+          tenant_id: string
+          tenant_name: string
+          user_id: string
+        }[]
+      }
+      line_daily_digest: {
+        Args: never
+        Returns: {
+          data: Json
+          line_user_id: string
+          tenant_id: string
+        }[]
+      }
+      line_find_receipt: {
+        Args: { _line_user_id: string; _receipt_no: string }
+        Returns: Json
+      }
+      line_has_module: {
+        Args: { _key: string; _line_user_id: string }
+        Returns: boolean
+      }
+      line_money_summary: { Args: { _line_user_id: string }; Returns: Json }
+      line_pending_clear: {
+        Args: { _line_user_id: string }
+        Returns: undefined
+      }
+      line_pending_get: {
+        Args: { _line_user_id: string }
+        Returns: {
+          data: Json
+          kind: string
+        }[]
+      }
+      line_pending_set: {
+        Args: { _data: Json; _kind: string; _line_user_id: string }
+        Returns: undefined
+      }
+      line_project_by_id: {
+        Args: { _line_user_id: string; _project_id: string }
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
+      line_projects: {
+        Args: { _limit?: number; _line_user_id: string; _q?: string }
+        Returns: {
+          client_name: string
+          id: string
+          last_report_at: string
+          my_recent: boolean
+          name: string
+          overall_percent: number
+          status: string
+          total: number
+        }[]
+      }
+      line_report_progress: {
+        Args: { _line_user_id: string; _percent: number; _stage_id: string }
+        Returns: Json
+      }
+      line_stages: {
+        Args: { _line_user_id: string; _project_id: string }
+        Returns: {
+          id: string
+          name: string
+          percent: number
+          project_name: string
+        }[]
+      }
+      mark_overdue_receivables: { Args: never; Returns: number }
       pa_create_tenant: {
         Args: {
           _display_name?: string
@@ -806,6 +1460,22 @@ export type Database = {
         }
         Returns: string
       }
+      pa_line_issue_code: { Args: { _user_id: string }; Returns: Json }
+      pa_line_members: {
+        Args: { _tenant_id: string }
+        Returns: {
+          bind_code: string
+          bound_at: string
+          code_expires_at: string
+          display_name: string
+          email: string
+          is_active: boolean
+          line_display_name: string
+          role: string
+          user_id: string
+        }[]
+      }
+      pa_line_unbind: { Args: { _user_id: string }; Returns: undefined }
       pa_tenant_list: {
         Args: never
         Returns: {
@@ -869,6 +1539,77 @@ export type Database = {
         Args: { _role: string; _user_id: string }
         Returns: undefined
       }
+      purge_line_data: { Args: never; Returns: undefined }
+      rpc_apply_stage_template: {
+        Args: { _project_id: string; _template_id: string }
+        Returns: number
+      }
+      rpc_dashboard_month: { Args: never; Returns: Json }
+      rpc_line_issue_code: { Args: { _user_id: string }; Returns: Json }
+      rpc_line_members: {
+        Args: never
+        Returns: {
+          bind_code: string
+          bound_at: string
+          code_expires_at: string
+          display_name: string
+          email: string
+          is_active: boolean
+          line_display_name: string
+          role: string
+          user_id: string
+        }[]
+      }
+      rpc_line_new_bind_code: { Args: never; Returns: string }
+      rpc_line_unbind: { Args: never; Returns: undefined }
+      rpc_line_unbind_member: { Args: { _user_id: string }; Returns: undefined }
+      rpc_my_tenant_tax_id: { Args: never; Returns: string }
+      rpc_price_book_remember: {
+        Args: { _name: string; _unit: string; _unit_price: number }
+        Returns: undefined
+      }
+      rpc_quote_new_version: { Args: { _quote_id: string }; Returns: string }
+      rpc_report_progress: {
+        Args: {
+          _note?: string
+          _percent: number
+          _source?: string
+          _stage_id: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          log_date: string
+          note: string | null
+          percent: number
+          project_id: string
+          reported_by: string | null
+          source: string
+          stage_id: string
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "progress_logs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_tax_import_expenses: { Args: never; Returns: number }
+      rpc_tax_summary: { Args: { _year: number }; Returns: Json }
+      seed_stage_templates: { Args: { _tenant_id: string }; Returns: undefined }
+      tax_default_deductible: {
+        Args: { _buyer_tax_id: string; _category: string; _tenant: string }
+        Returns: {
+          deductible: boolean
+          note: string
+        }[]
+      }
+      tenant_has_module: {
+        Args: { _key: string; _tenant: string }
+        Returns: boolean
+      }
+      verify_cron_secret: { Args: { _secret: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
