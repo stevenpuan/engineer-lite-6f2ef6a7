@@ -1,9 +1,10 @@
-import { Outlet, Navigate } from '@tanstack/react-router'
+import { Navigate } from '@tanstack/react-router'
+import type { ReactNode } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { ModuleProvider } from '@/contexts/ModuleContext'
 import { Sidebar } from './Sidebar'
 
-export function Layout() {
+export function Layout({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth()
 
   if (loading) {
@@ -22,7 +23,7 @@ export function Layout() {
         <Sidebar />
         <main className="lg:pl-64">
           <div className="px-4 py-6 sm:px-6 lg:px-8 pt-16 lg:pt-6">
-            <Outlet />
+            {children}
           </div>
         </main>
       </div>
