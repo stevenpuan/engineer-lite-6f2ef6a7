@@ -10,17 +10,11 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import { Plus, Search, Trash2, Banknote } from 'lucide-react'
-import { PAYABLE_STATUS_LABELS, type PayableStatus } from '@/types/database'
+import { PAYABLE_STATUS_LABELS } from '@/types/database'
 import { toast } from 'sonner'
-
-const statusStyle: Record<PayableStatus, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  partial: 'bg-blue-100 text-blue-800',
-  paid: 'bg-green-100 text-green-800',
-  cancelled: 'bg-gray-100 text-gray-500',
-}
+import { StatusBadge } from '@/components/StatusBadge'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 export default function PayablesPage() {
   const canDelete = useCanDelete()
@@ -65,7 +59,6 @@ export default function PayablesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('確定要刪除？')) return
     try {
       await deletePayable.mutateAsync(id)
       toast.success('已刪除')
@@ -99,7 +92,7 @@ export default function PayablesPage() {
               <div key={p.id} className="p-4 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{p.vendor_name}</span>
-                  <Badge className={statusStyle[p.status]} variant="secondary">{PAYABLE_STATUS_LABELS[p.status]}</Badge>
+                  <StatusBadge status={PAYABLE_STATUS_LABELS[p.status]} />
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {(p.project as { name: string } | null)?.name ?? '—'} · ${Number(p.amount).toLocaleString()}
@@ -110,7 +103,15 @@ export default function PayablesPage() {
                       <Banknote className="mr-1 h-4 w-4" />登記付款
                     </Button>
                   )}
-                  {canDelete && (<Button variant="ghost" size="icon" aria-label="刪除應付" className="ml-auto" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
+                  {canDelete && (
+                    <ConfirmDialog
+                      title="刪除應付帳款"
+                      description={`確定要刪除「${p.vendor_name}」這筆應付？`}
+                      warning="已登記的付款紀錄會一併刪除，且無法復原。"
+                      onConfirm={() => handleDelete(p.id)}
+                      trigger={<Button variant="ghost" size="icon" aria-label="刪除應付" className="ml-auto"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                    />
+                  )}
                 </div>
               </div>
             ))}
@@ -138,14 +139,22 @@ export default function PayablesPage() {
                     <TableCell>{(p.project as { name: string } | null)?.name ?? '—'}</TableCell>
                     <TableCell className="text-right">${Number(p.amount).toLocaleString()}</TableCell>
                     <TableCell>{p.due_date ?? '—'}</TableCell>
-                    <TableCell><Badge className={statusStyle[p.status]} variant="secondary">{PAYABLE_STATUS_LABELS[p.status]}</Badge></TableCell>
+                    <TableCell><StatusBadge status={PAYABLE_STATUS_LABELS[p.status]} /></TableCell>
                     <TableCell className="whitespace-nowrap text-right">
                       {p.status !== 'cancelled' && (
                         <Button variant="outline" size="sm" onClick={() => setSettleId(p.id)}>
                           <Banknote className="mr-1 h-4 w-4" />登記付款
                         </Button>
                       )}
-                      {canDelete && (<Button variant="ghost" size="icon" aria-label="刪除應付" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
+                      {canDelete && (
+                        <ConfirmDialog
+                          title="刪除應付帳款"
+                          description={`確定要刪除「${p.vendor_name}」這筆應付？`}
+                          warning="已登記的付款紀錄會一併刪除，且無法復原。"
+                          onConfirm={() => handleDelete(p.id)}
+                          trigger={<Button variant="ghost" size="icon" aria-label="刪除應付"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                        />
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
