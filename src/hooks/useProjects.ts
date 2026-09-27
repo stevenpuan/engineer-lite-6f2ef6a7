@@ -36,7 +36,7 @@ export function useCreateProject() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (input: Omit<Project, 'id' | 'tenant_id' | 'created_at' | 'updated_at' | 'client'>) => {
-      const { data, error } = await supabase.from('projects').insert(input).select().single()
+      const { data, error } = await supabase.from('projects').insert(input as never).select().single()
       if (error) throw error
       return data
     },
@@ -49,7 +49,7 @@ export function useUpdateProject() {
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<Project> & { id: string }) => {
       const { client: _c, ...rest } = input as Record<string, unknown> & { client?: unknown }
-      const { data, error } = await supabase.from('projects').update(rest).eq('id', id).select().single()
+      const { data, error } = await supabase.from('projects').update(rest as never).eq('id', id).select().single()
       if (error) throw error
       return data
     },

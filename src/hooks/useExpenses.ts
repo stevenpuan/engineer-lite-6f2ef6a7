@@ -33,7 +33,7 @@ export function useCreateExpense() {
       is_overhead?: boolean
       notes?: string
     }) => {
-      const { data, error } = await supabase.from('expenses').insert(input).select().single()
+      const { data, error } = await supabase.from('expenses').insert(input as never).select().single()
       if (error) throw error
       return data
     },
@@ -45,7 +45,7 @@ export function useUpdateExpense() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<Expense> & { id: string }) => {
-      const { data, error } = await supabase.from('expenses').update(input).eq('id', id).select().single()
+      const { data, error } = await supabase.from('expenses').update(input as never).eq('id', id).select().single()
       if (error) throw error
       return data
     },
