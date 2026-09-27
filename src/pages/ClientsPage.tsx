@@ -54,6 +54,7 @@ export default function ClientsPage() {
       phone: form.phone || null,
       email: form.email || null,
       address: form.address || null,
+      tax_id: null,
       notes: form.notes || null,
     }
     try {
