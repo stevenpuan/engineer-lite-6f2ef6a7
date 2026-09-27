@@ -54,10 +54,21 @@ export function SettlementDialog({ open, onOpenChange, kind, subject, totalAmoun
   const [form, setForm] = useState({ date: today(), amount: '', method: '匯款', reference_no: '' })
   const [saving, setSaving] = useState(false)
 
+  // 金額是否被使用者改過；沒改過就跟著「未收／未付餘額」走（收付紀錄是非同步載入的）
+  const [amountTouched, setAmountTouched] = useState(false)
+
   useEffect(() => {
-    if (open) setForm({ date: today(), amount: remaining ? String(remaining) : '', method: '匯款', reference_no: '' })
+    if (open) {
+      setForm({ date: today(), amount: remaining ? String(remaining) : '', method: '匯款', reference_no: '' })
+      setAmountTouched(false)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  useEffect(() => {
+    if (open && !amountTouched) setForm(f => ({ ...f, amount: remaining ? String(remaining) : '' }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remaining])
 
   async function handleCreate() {
     const amount = Number(form.amount)
@@ -73,6 +84,7 @@ export function SettlementDialog({ open, onOpenChange, kind, subject, totalAmoun
       })
       toast.success(`${verb}已登記`)
       setForm({ date: today(), amount: '', method: form.method, reference_no: '' })
+      setAmountTouched(false)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '登記失敗')
     } finally {
@@ -112,7 +124,7 @@ export function SettlementDialog({ open, onOpenChange, kind, subject, totalAmoun
             </div>
             <div>
               <Label htmlFor="settle-amount">金額 *</Label>
-              <Input id="settle-amount" type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
+              <Input id="settle-amount" type="number" value={form.amount} onChange={e => { setAmountTouched(true); setForm({ ...form, amount: e.target.value }) }} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
