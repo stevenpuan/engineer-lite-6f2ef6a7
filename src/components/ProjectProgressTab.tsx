@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useCanDelete } from '@/hooks/useCanDelete'
 import { Link } from '@tanstack/react-router'
 import {
   useProjectStages, useProgressLogs, useStageTemplates, useApplyStageTemplate,
@@ -33,6 +34,7 @@ function errMsg(err: unknown, fallback: string) {
 }
 
 export function ProjectProgressTab({ projectId }: { projectId: string }) {
+  const canDelete = useCanDelete()
   const { data: stages = [], isLoading } = useProjectStages(projectId)
   const { data: logs = [] } = useProgressLogs(projectId)
   const { data: templates = [] } = useStageTemplates()
@@ -172,7 +174,7 @@ export function ProjectProgressTab({ projectId }: { projectId: string }) {
                     <Button variant="ghost" size="icon" aria-label="上移" disabled={i === 0} onClick={() => move(i, -1)}><ChevronUp className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" aria-label="下移" disabled={i === stages.length - 1} onClick={() => move(i, 1)}><ChevronDown className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" aria-label="編輯階段" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" aria-label="刪除階段" onClick={() => removeStage(s)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    {canDelete && (<Button variant="ghost" size="icon" aria-label="刪除階段" onClick={() => removeStage(s)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

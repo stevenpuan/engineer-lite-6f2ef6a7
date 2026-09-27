@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { useParams, Link } from '@tanstack/react-router'
+import { useCanDelete } from '@/hooks/useCanDelete'
+import { useParams, Link, useNavigate } from '@tanstack/react-router'
+import { usePriceBook, useRememberPrice, useQuoteNewVersion } from '@/hooks/useCoreExtras'
 import { useQuote, useQuoteItems, useUpdateQuote, useCreateQuoteItem, useDeleteQuoteItem, useRecalcQuote } from '@/hooks/useQuotes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Copy, Plus, Trash2 } from 'lucide-react'
 import type { QuoteStatus } from '@/types/database'
 import { toast } from 'sonner'
 
@@ -23,6 +25,7 @@ const statusStyle: Record<QuoteStatus, string> = {
 const allStatuses: QuoteStatus[] = ['草稿', '已送出', '已接受', '已拒絕', '已過期']
 
 export default function QuoteDetailPage() {
+  const canDelete = useCanDelete()
   const { id } = useParams({ strict: false }) as { id: string }
   const { data: quote, isLoading } = useQuote(id)
   const { data: items = [] } = useQuoteItems(id)
@@ -30,6 +33,30 @@ export default function QuoteDetailPage() {
   const createItem = useCreateQuoteItem()
   const deleteItem = useDeleteQuoteItem()
   const recalc = useRecalcQuote()
+  const navigate = useNavigate()
+  const { data: priceBook = [] } = usePriceBook()
+  const rememberPrice = useRememberPrice()
+  const newVersion = useQuoteNewVersion()
+
+  // 選到常用品項就自動帶出單位與單價
+  function handleDescriptionChange(value: string) {
+    const hit = priceBook.find(pb => pb.name === value.trim())
+    setItemForm(f => hit
+      ? { ...f, description: value, unit: hit.unit ?? f.unit, unit_price: String(hit.unit_price) }
+      : { ...f, description: value })
+  }
+
+  async function handleNewVersion() {
+    if (!id) return
+    if (!confirm('複製成新版本？舊版本會保留，列表只顯示最新版。')) return
+    try {
+      const newId = await newVersion.mutateAsync(id)
+      toast.success('已建立新版本')
+      navigate({ to: '/quotes/$id', params: { id: newId } })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '建立新版本失敗')
+    }
+  }
 
   const [itemDialog, setItemDialog] = useState(false)
   const [itemForm, setItemForm] = useState({ description: '', unit: '', quantity: '1', unit_price: '0' })
@@ -60,6 +87,7 @@ export default function QuoteDetailPage() {
         sort_order: items.length,
       })
       await recalc.mutateAsync(id)
+      rememberPrice.mutate({ name: itemForm.description.trim(), unit: itemForm.unit || null, unit_price: price })
       toast.success('明細已新增')
       setItemDialog(false)
       setItemForm({ description: '', unit: '', quantity: '1', unit_price: '0' })
@@ -88,7 +116,14 @@ export default function QuoteDetailPage() {
         <Link to="/quotes"><Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button></Link>
         <h1 className="text-2xl font-bold">{quote.title}</h1>
         <Badge className={statusStyle[quote.status]} variant="secondary">{quote.status}</Badge>
+        {(quote.version ?? 1) > 1 && <Badge variant="outline">v{quote.version}</Badge>}
+        <Button variant="outline" size="sm" className="ml-auto" onClick={handleNewVersion} disabled={newVersion.isPending}>
+          <Copy className="mr-1 h-4 w-4" />另存新版本
+        </Button>
       </div>
+      {quote.is_latest === false && (
+        <div className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">這是舊版本，僅供查閱；最新版本請回報價單列表。</div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -144,9 +179,9 @@ export default function QuoteDetailPage() {
                   <TableCell className="text-right">${Number(item.unit_price).toLocaleString()}</TableCell>
                   <TableCell className="text-right font-medium">${Number(item.amount).toLocaleString()}</TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)}>
+                    {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    </Button>)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -166,7 +201,10 @@ export default function QuoteDetailPage() {
             <DialogDescription>輸入品項的說明、數量和單價</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
-            <div><Label>品項說明 *</Label><Input value={itemForm.description} onChange={e => setItemForm({ ...itemForm, description: e.target.value })} placeholder="例：拆除工程" /></div>
+            <div><Label>品項說明 *</Label><Input list="price-book-list" value={itemForm.description} onChange={e => handleDescriptionChange(e.target.value)} placeholder="例：拆除工程（打字會帶出常用品項）" />
+              <datalist id="price-book-list">
+                {priceBook.map(pb => <option key={pb.id} value={pb.name}>{`${pb.unit ?? ''} $${Number(pb.unit_price).toLocaleString()}`}</option>)}
+              </datalist></div>
             <div className="grid grid-cols-3 gap-3">
               <div><Label>單位</Label><Input value={itemForm.unit} onChange={e => setItemForm({ ...itemForm, unit: e.target.value })} placeholder="式/坪/m" /></div>
               <div><Label>數量</Label><Input type="number" value={itemForm.quantity} onChange={e => setItemForm({ ...itemForm, quantity: e.target.value })} /></div>

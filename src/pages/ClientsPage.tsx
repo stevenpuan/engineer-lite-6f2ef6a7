@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useCanDelete } from '@/hooks/useCanDelete'
 import { useClients, useCreateClient, useUpdateClient, useDeleteClient } from '@/hooks/useClients'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +14,7 @@ import { toast } from 'sonner'
 const emptyForm = { name: '', contact_name: '', phone: '', email: '', address: '', notes: '' }
 
 export default function ClientsPage() {
+  const canDelete = useCanDelete()
   const { data: clients = [], isLoading } = useClients()
   const createClient = useCreateClient()
   const updateClient = useUpdateClient()
@@ -113,7 +115,7 @@ export default function ClientsPage() {
                   <span className="font-medium">{c.name}</span>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
                   </div>
                 </div>
                 {c.contact_name && <div className="text-sm text-muted-foreground">聯絡人：{c.contact_name}</div>}
@@ -144,7 +146,7 @@ export default function ClientsPage() {
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
                       </div>
                     </TableCell>
                   </TableRow>

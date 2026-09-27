@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useCanDelete } from '@/hooks/useCanDelete'
 import { useExpenses, useCreateExpense, useDeleteExpense } from '@/hooks/useExpenses'
 import { useProjects } from '@/hooks/useProjects'
 import { Button } from '@/components/ui/button'
@@ -9,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
-import { Plus, Search, Trash2 } from 'lucide-react'
+import { Plus, Search, Trash2, Image as ImageIcon } from 'lucide-react'
+import { openExpensePhoto } from '@/hooks/useCoreExtras'
 import { EXPENSE_CATEGORY_LABELS, type ExpenseCategory } from '@/types/database'
 import { toast } from 'sonner'
 
@@ -40,6 +42,11 @@ const emptyForm = {
 }
 
 export default function ExpensesPage() {
+  const canDelete = useCanDelete()
+
+  async function showPhoto(path: string) {
+    try { await openExpensePhoto(path) } catch (err) { toast.error(err instanceof Error ? err.message : '無法開啟照片') }
+  }
   const { data: expenses = [], isLoading } = useExpenses()
   const { data: projects = [] } = useProjects()
   const createExpense = useCreateExpense()
@@ -112,7 +119,14 @@ export default function ExpensesPage() {
             {filtered.map(e => (
               <div key={e.id} className="p-4 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">{e.description}</span>
+                  <span className="font-medium">
+                    {e.description}
+                    {e.photo_path && (
+                      <button type="button" aria-label="看單據照片" className="ml-1 inline-flex align-middle text-primary" onClick={() => showPhoto(e.photo_path!)}>
+                        <ImageIcon className="h-4 w-4" />
+                      </button>
+                    )}
+                  </span>
                   <span className="font-semibold">${Number(e.amount).toLocaleString()}</span>
                 </div>
                 <div className="text-sm text-muted-foreground flex items-center gap-2">
@@ -142,13 +156,20 @@ export default function ExpensesPage() {
                 {filtered.map(e => (
                   <TableRow key={e.id}>
                     <TableCell className="text-muted-foreground">{e.expense_date}</TableCell>
-                    <TableCell className="font-medium">{e.description}</TableCell>
+                    <TableCell className="font-medium">
+                      {e.description}
+                      {e.photo_path && (
+                    <button type="button" aria-label="看單據照片" className="ml-1 inline-flex align-middle text-primary" onClick={() => showPhoto(e.photo_path!)}>
+                      <ImageIcon className="h-4 w-4" />
+                    </button>
+                  )}
+                    </TableCell>
                     <TableCell>{EXPENSE_CATEGORY_LABELS[e.category] ?? e.category}</TableCell>
                     <TableCell>{(e.project as { name: string } | null)?.name ?? (e.is_overhead ? '公司支出' : '—')}</TableCell>
                     <TableCell className="text-right">${Number(e.amount).toLocaleString()}</TableCell>
                     <TableCell><Badge className={statusStyle[e.status] ?? ''} variant="secondary">{statusLabel[e.status] ?? e.status}</Badge></TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
                     </TableCell>
                   </TableRow>
                 ))}

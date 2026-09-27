@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useCanDelete } from '@/hooks/useCanDelete'
 import { useStageTemplates, useSaveStageTemplate, useDeleteStageTemplate } from '@/hooks/useProgress'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,7 @@ import type { StageTemplate } from '@/types/database'
 import { toast } from 'sonner'
 
 export default function StageTemplatesPage() {
+  const canDelete = useCanDelete()
   const { data: templates = [], isLoading } = useStageTemplates()
   const save = useSaveStageTemplate()
   const remove = useDeleteStageTemplate()
@@ -72,7 +74,7 @@ export default function StageTemplatesPage() {
                   <div className="font-semibold">{t.name}</div>
                   <div className="flex">
                     <Button variant="ghost" size="icon" aria-label="編輯範本" onClick={() => open(t)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" aria-label="刪除範本" onClick={() => handleDelete(t)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    {canDelete && (<Button variant="ghost" size="icon" aria-label="刪除範本" onClick={() => handleDelete(t)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
                   </div>
                 </div>
                 <ol className="flex flex-wrap gap-1.5">

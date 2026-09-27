@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useCanDelete } from '@/hooks/useCanDelete'
 import { useReceivables, useCreateReceivable, useDeleteReceivable, useReceipts, useCreateReceipt, useDeleteReceipt } from '@/hooks/useReceivables'
 import { SettlementDialog } from '@/components/SettlementDialog'
 import { useProjects } from '@/hooks/useProjects'
@@ -24,6 +25,7 @@ const statusStyle: Record<ReceivableStatus, string> = {
 }
 
 export default function ReceivablesPage() {
+  const canDelete = useCanDelete()
   const { data: receivables = [], isLoading } = useReceivables()
   const { data: projects = [] } = useProjects()
   const createReceivable = useCreateReceivable()
@@ -140,7 +142,7 @@ export default function ReceivablesPage() {
                           <HandCoins className="mr-1 h-4 w-4" />登記收款
                         </Button>
                       )}
-                      <Button variant="ghost" size="icon" aria-label="刪除應收" onClick={() => handleDelete(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      {canDelete && (<Button variant="ghost" size="icon" aria-label="刪除應收" onClick={() => handleDelete(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
                     </TableCell>
                   </TableRow>
                 ))}

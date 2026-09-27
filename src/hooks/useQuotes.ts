@@ -9,6 +9,7 @@ export function useQuotes(projectId?: string) {
       let q = supabase
         .from('quotes')
         .select('*, project:projects(id, name)')
+        .filter('is_latest', 'eq', true) // 列表只顯示最新版本；舊版本從報價單內頁查閱
         .order('created_at', { ascending: false })
       if (projectId) q = q.eq('project_id', projectId)
       const { data, error } = await q

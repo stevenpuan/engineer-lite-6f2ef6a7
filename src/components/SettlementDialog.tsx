@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useCanDelete } from '@/hooks/useCanDelete'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -42,6 +43,7 @@ function today() {
 }
 
 export function SettlementDialog({ open, onOpenChange, kind, subject, totalAmount, records, onCreate, onDelete }: Props) {
+  const canDelete = useCanDelete()
   const verb = kind === 'receipt' ? '收款' : '付款'
   const doneLabel = kind === 'receipt' ? '已收' : '已付'
   const leftLabel = kind === 'receipt' ? '未收' : '未付'
@@ -145,9 +147,9 @@ export function SettlementDialog({ open, onOpenChange, kind, subject, totalAmoun
                       {r.date}{r.method ? ` · ${r.method}` : ''}{r.reference_no ? ` · ${r.reference_no}` : ''}
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" aria-label={`刪除${verb}紀錄`} onClick={() => handleDelete(r.id)}>
+                  {canDelete && (<Button variant="ghost" size="icon" aria-label={`刪除${verb}紀錄`} onClick={() => handleDelete(r.id)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  </Button>)}
                 </li>
               ))}
             </ul>

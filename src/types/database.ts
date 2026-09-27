@@ -87,6 +87,9 @@ export interface Quote {
   tax: number
   total: number
   notes: string | null
+  parent_quote_id: string | null
+  version: number
+  is_latest: boolean
   created_at: string
   updated_at: string
   project?: Project | null
@@ -152,6 +155,7 @@ export interface Expense {
   receipt_no: string | null
   is_overhead: boolean
   notes: string | null
+  photo_path: string | null
   created_at: string
   updated_at: string
   project?: Project | null
@@ -303,4 +307,42 @@ export interface ProjectProgress {
   stage_count: number
   overall_percent: number
   last_report_at: string | null
+}
+
+// ── B3c: 常用單價庫、本月帳務 ──
+
+export interface PriceBookItem {
+  id: string
+  tenant_id: string
+  name: string
+  unit: string | null
+  unit_price: number
+  use_count: number
+  last_used_at: string
+}
+
+export interface ProjectMargin {
+  project_id: string
+  name: string
+  status: string
+  revenue: number
+  cost: number
+  margin: number
+}
+
+export interface DashboardMonth {
+  month: string
+  is_owner: boolean
+  recv_due_month?: number
+  recv_overdue?: number
+  recv_overdue_count?: number
+  recv_received_month?: number
+  pay_due_month?: number
+  pay_overdue?: number
+  pay_paid_month?: number
+  expense_month?: number
+  cash_in: number
+  cash_out: number
+  cash_net: number
+  margins?: ProjectMargin[]
 }

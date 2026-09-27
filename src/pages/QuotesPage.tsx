@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useCanDelete } from '@/hooks/useCanDelete'
 import { Link } from '@tanstack/react-router'
 import { useQuotes, useCreateQuote, useDeleteQuote } from '@/hooks/useQuotes'
 import { useProjects } from '@/hooks/useProjects'
@@ -23,6 +24,7 @@ const statusStyle: Record<QuoteStatus, string> = {
 }
 
 export default function QuotesPage() {
+  const canDelete = useCanDelete()
   const { data: quotes = [], isLoading } = useQuotes()
   const { data: projects = [] } = useProjects()
   const createQuote = useCreateQuote()
@@ -87,7 +89,7 @@ export default function QuotesPage() {
             {filtered.map(q => (
               <div key={q.id} className="p-4 space-y-1">
                 <div className="flex items-center justify-between">
-                  <Link to="/quotes/$id" params={{ id: q.id }} className="font-medium hover:underline">{q.title}</Link>
+                  <Link to="/quotes/$id" params={{ id: q.id }} className="font-medium hover:underline">{q.title}{(q.version ?? 1) > 1 ? ` (v${q.version})` : ''}</Link>
                   <Badge className={statusStyle[q.status]} variant="secondary">{q.status}</Badge>
                 </div>
                 <div className="text-sm text-muted-foreground">
@@ -115,7 +117,7 @@ export default function QuotesPage() {
                   <TableRow key={q.id}>
                     <TableCell className="text-muted-foreground">{q.quote_no ?? '—'}</TableCell>
                     <TableCell className="font-medium">
-                      <Link to="/quotes/$id" params={{ id: q.id }} className="hover:underline">{q.title}</Link>
+                      <Link to="/quotes/$id" params={{ id: q.id }} className="hover:underline">{q.title}{(q.version ?? 1) > 1 ? ` (v${q.version})` : ''}</Link>
                     </TableCell>
                     <TableCell>{(q.project as { name: string } | null)?.name ?? '—'}</TableCell>
                     <TableCell className="text-right">${q.total.toLocaleString()}</TableCell>
@@ -123,7 +125,7 @@ export default function QuotesPage() {
                     <TableCell>
                       <div className="flex gap-1">
                         <Link to="/quotes/$id" params={{ id: q.id }}><Button variant="ghost" size="icon"><ExternalLink className="h-4 w-4" /></Button></Link>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(q.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDelete(q.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
                       </div>
                     </TableCell>
                   </TableRow>

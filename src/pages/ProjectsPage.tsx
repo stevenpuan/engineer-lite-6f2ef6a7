@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useCanDelete } from '@/hooks/useCanDelete'
 import { Link } from '@tanstack/react-router'
 import { useProjects, useCreateProject, useDeleteProject } from '@/hooks/useProjects'
 import { useClients } from '@/hooks/useClients'
@@ -28,6 +29,7 @@ const statusColor: Record<string, string> = {
 const allStatuses: ProjectStatus[] = ['洽談中', '進行中', '完工', '結案', '取消']
 
 export default function ProjectsPage() {
+  const canDelete = useCanDelete()
   const { data: projects = [], isLoading } = useProjects()
   const { hasModule } = useModules()
   const showProgress = hasModule('progress')
@@ -160,9 +162,9 @@ export default function ProjectsPage() {
                     )}
                     <TableCell>{p.contract_amount != null ? `$${p.contract_amount.toLocaleString()}` : '—'}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}>
+                      {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      </Button>)}
                     </TableCell>
                   </TableRow>
                 ))}

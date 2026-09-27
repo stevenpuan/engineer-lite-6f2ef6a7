@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useCanDelete } from '@/hooks/useCanDelete'
 import { usePayables, useCreatePayable, useDeletePayable, usePayments, useCreatePayment, useDeletePayment } from '@/hooks/usePayables'
 import { SettlementDialog } from '@/components/SettlementDialog'
 import { useProjects } from '@/hooks/useProjects'
@@ -22,6 +23,7 @@ const statusStyle: Record<PayableStatus, string> = {
 }
 
 export default function PayablesPage() {
+  const canDelete = useCanDelete()
   const { data: payables = [], isLoading } = usePayables()
   const { data: projects = [] } = useProjects()
   const createPayable = useCreatePayable()
@@ -140,7 +142,7 @@ export default function PayablesPage() {
                           <Banknote className="mr-1 h-4 w-4" />登記付款
                         </Button>
                       )}
-                      <Button variant="ghost" size="icon" aria-label="刪除應付" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      {canDelete && (<Button variant="ghost" size="icon" aria-label="刪除應付" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
                     </TableCell>
                   </TableRow>
                 ))}

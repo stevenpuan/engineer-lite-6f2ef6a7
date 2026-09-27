@@ -2,7 +2,9 @@ import { useClients } from '@/hooks/useClients'
 import { useProjects } from '@/hooks/useProjects'
 import { useFinanceSummary } from '@/hooks/useFinanceSummary'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, FolderKanban, ArrowRight, TrendingUp, TrendingDown, Wallet } from 'lucide-react'
+import { Users, FolderKanban, ArrowRight } from 'lucide-react'
+import { useDashboardMonth } from '@/hooks/useCoreExtras'
+import { cn } from '@/lib/utils'
 import { Link } from '@tanstack/react-router'
 import { Badge } from '@/components/ui/badge'
 import { useModules } from '@/contexts/ModuleContext'
@@ -21,6 +23,7 @@ export default function DashboardPage() {
   const { data: clients = [] } = useClients()
   const { data: projects = [] } = useProjects()
   const { data: financeSummary = [] } = useFinanceSummary()
+  const { data: month } = useDashboardMonth()
 
   const activeProjects = projects.filter(p => p.status === '進行中')
 
@@ -77,48 +80,64 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Finance summary */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* 本月帳務（M6）*/}
+      {month && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">報價總額</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">本月帳務 <span className="text-sm font-normal text-muted-foreground">{month.month}</span></CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">${totalQuoted.toLocaleString()}</div>
+          <CardContent className="space-y-4">
+            {month.recv_due_month !== undefined && (
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <Stat label="本月待收" value={month.recv_due_month} />
+                <Stat label="本月已收" value={month.recv_received_month ?? 0} tone="green" />
+                <Stat label={`逾期未收${month.recv_overdue_count ? `（${month.recv_overdue_count} 筆）` : ''}`} value={month.recv_overdue ?? 0} tone={month.recv_overdue ? 'red' : undefined} />
+              </div>
+            )}
+            {month.pay_due_month !== undefined && (
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <Stat label="本月待付" value={month.pay_due_month} />
+                <Stat label="本月已付" value={month.pay_paid_month ?? 0} />
+                <Stat label="本月支出" value={month.expense_month ?? 0} />
+              </div>
+            )}
+            <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">現金流（本月進 − 本月出）</span>
+              <span className={month.cash_net < 0 ? 'font-semibold text-red-600' : 'font-semibold text-green-700'}>
+                {month.cash_net < 0 ? '−' : ''}${Math.abs(month.cash_net).toLocaleString()}
+              </span>
+            </div>
           </CardContent>
         </Card>
+      )}
 
+      {/* 案件毛利：只有老闆看得到（資料庫端同樣只回給老闆）*/}
+      {month?.margins && month.margins.length > 0 && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">已收款</CardTitle>
-            <Wallet className="h-4 w-4 text-green-600" />
-          </CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-lg">案件毛利</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-green-700">${totalReceived.toLocaleString()}</div>
+            <div className="space-y-2">
+              {month.margins.map(m => (
+                <Link key={m.project_id} to="/projects/$id" params={{ id: m.project_id }} className="flex items-center justify-between gap-3 rounded-lg border p-3 hover:bg-accent/50 transition-colors">
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{m.name}</div>
+                    <div className="text-xs text-muted-foreground">收入 ${Number(m.revenue).toLocaleString()} · 成本 ${Number(m.cost).toLocaleString()}</div>
+                  </div>
+                  <div className={Number(m.margin) < 0 ? 'text-right font-semibold text-red-600' : 'text-right font-semibold text-green-700'}>
+                    ${Number(m.margin).toLocaleString()}
+                    {Number(m.revenue) > 0 && <div className="text-xs font-normal text-muted-foreground">{Math.round((Number(m.margin) / Number(m.revenue)) * 100)}%</div>}
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">收入以合約金額計（未填則用報價），成本 = 支出 + 應付。</p>
           </CardContent>
         </Card>
+      )}
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">支出總額</CardTitle>
-            <TrendingDown className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-red-600">${totalExpenses.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">應付未付</CardTitle>
-            <TrendingDown className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-orange-600">${totalPayables.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-      </div>
+      <p className="text-xs text-muted-foreground">
+        累計：報價 ${totalQuoted.toLocaleString()} · 已收 ${totalReceived.toLocaleString()} · 支出 ${totalExpenses.toLocaleString()} · 應付未付 ${totalPayables.toLocaleString()}
+      </p>
 
       {showProgress && staleProjects.length > 0 && (
         <Card>
@@ -182,6 +201,17 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
+    </div>
+  )
+}
+
+function Stat({ label, value, tone }: { label: string; value: number; tone?: 'green' | 'red' }) {
+  return (
+    <div className="rounded-lg border p-2">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={cn('text-base font-bold sm:text-lg', tone === 'green' && 'text-green-700', tone === 'red' && 'text-red-600')}>
+        ${Number(value).toLocaleString()}
+      </div>
     </div>
   )
 }
