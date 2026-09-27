@@ -8,18 +8,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import { Plus, Search, Trash2, ExternalLink } from 'lucide-react'
-import type { QuoteStatus } from '@/types/database'
 import { toast } from 'sonner'
-
-const statusStyle: Record<QuoteStatus, string> = {
-  '草稿': 'bg-gray-100 text-gray-800',
-  '已送出': 'bg-blue-100 text-blue-800',
-  '已接受': 'bg-green-100 text-green-800',
-  '已拒絕': 'bg-red-100 text-red-800',
-  '已過期': 'bg-yellow-100 text-yellow-800',
-}
+import { StatusBadge } from '@/components/StatusBadge'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 export default function QuotesPage() {
   const canDelete = useCanDelete()
@@ -49,7 +41,6 @@ export default function QuotesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('確定要刪除此報價單？')) return
     try {
       await deleteQuote.mutateAsync(id)
       toast.success('已刪除')
@@ -87,7 +78,7 @@ export default function QuotesPage() {
               <div key={q.id} className="p-4 space-y-1">
                 <div className="flex items-center justify-between">
                   <Link to="/quotes/$id" params={{ id: q.id }} className="font-medium hover:underline">{q.title}{(q.version ?? 1) > 1 ? ` (v${q.version})` : ''}</Link>
-                  <Badge className={statusStyle[q.status]} variant="secondary">{q.status}</Badge>
+                  <StatusBadge status={q.status} />
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {(q.project as { name: string } | null)?.name ?? '—'} · ${q.total.toLocaleString()}
@@ -118,11 +109,19 @@ export default function QuotesPage() {
                     </TableCell>
                     <TableCell>{(q.project as { name: string } | null)?.name ?? '—'}</TableCell>
                     <TableCell className="text-right">${q.total.toLocaleString()}</TableCell>
-                    <TableCell><Badge className={statusStyle[q.status]} variant="secondary">{q.status}</Badge></TableCell>
+                    <TableCell><StatusBadge status={q.status} /></TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Link to="/quotes/$id" params={{ id: q.id }}><Button variant="ghost" size="icon"><ExternalLink className="h-4 w-4" /></Button></Link>
-                        {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDelete(q.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
+                        {canDelete && (
+                          <ConfirmDialog
+                            title="刪除報價單"
+                            description={`確定要刪除「${q.title}」？`}
+                            warning="報價單內的品項明細會一併刪除，且無法復原。"
+                            onConfirm={() => handleDelete(q.id)}
+                            trigger={<Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                          />
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
