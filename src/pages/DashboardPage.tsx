@@ -25,7 +25,8 @@ export default function DashboardPage() {
   const totalQuoted = financeSummary.reduce((s, f) => s + (f.quote_total ?? 0), 0)
   const totalReceived = financeSummary.reduce((s, f) => s + (f.received_total ?? 0), 0)
   const totalExpenses = financeSummary.reduce((s, f) => s + (f.expense_total ?? 0), 0)
-  const totalPayables = financeSummary.reduce((s, f) => s + (f.payable_total ?? 0), 0)
+  // 應付未付 = 應付總額 − 已付金額
+  const totalPayables = financeSummary.reduce((s, f) => s + ((f.payable_total ?? 0) - (f.paid_total ?? 0)), 0)
 
   return (
     <div className="space-y-6">
