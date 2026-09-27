@@ -152,11 +152,19 @@ export default function QuoteDetailPage() {
             <Button variant="ghost" size="icon" onClick={() => setTitleDraft(null)} aria-label="取消"><X className="h-4 w-4" /></Button>
           </div>
         )}
-        <Badge className={statusStyle[quote.status]} variant="secondary">{quote.status}</Badge>
+        <StatusBadge status={quote.status} />
         {(quote.version ?? 1) > 1 && <Badge variant="outline">v{quote.version}</Badge>}
-        <Button variant="outline" size="sm" className="ml-auto" onClick={handleNewVersion} disabled={newVersion.isPending}>
-          <Copy className="mr-1 h-4 w-4" />另存新版本
-        </Button>
+        <ConfirmDialog
+          title="另存新版本"
+          description="會複製目前內容成新版本，舊版本保留，列表只顯示最新版。"
+          confirmLabel="建立新版本"
+          onConfirm={handleNewVersion}
+          trigger={
+            <Button variant="outline" size="sm" className="ml-auto" disabled={newVersion.isPending}>
+              <Copy className="mr-1 h-4 w-4" />另存新版本
+            </Button>
+          }
+        />
       </div>
       {quote.is_latest === false && (
         <div className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">這是舊版本，僅供查閱；最新版本請回報價單列表。</div>
@@ -177,7 +185,18 @@ export default function QuoteDetailPage() {
           <CardHeader><CardTitle className="text-base">金額 & 狀態</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">小計</span><span>${quote.subtotal.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">稅 (5%)</span><span>${quote.tax.toLocaleString()}</span></div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">稅率</span>
+              <Select
+                className="h-8 w-32"
+                value={String(currentTaxRate(quote))}
+                onChange={e => handleTaxRateChange(Number(e.target.value))}
+              >
+                <option value="5">外加 5%</option>
+                <option value="0">免稅 0%</option>
+              </Select>
+            </div>
+            <div className="flex justify-between"><span className="text-muted-foreground">稅額</span><span>${quote.tax.toLocaleString()}</span></div>
             <div className="flex justify-between font-semibold text-base"><span>合計</span><span>${quote.total.toLocaleString()}</span></div>
             <div className="pt-2">
               <Label>變更狀態</Label>
