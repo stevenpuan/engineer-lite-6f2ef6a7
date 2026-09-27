@@ -1,16 +1,14 @@
 import { useState } from 'react'
 import { useCanDelete } from '@/hooks/useCanDelete'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { ProjectSelect } from '@/components/ProjectSelect'
 import { useQuotes, useCreateQuote, useDeleteQuote } from '@/hooks/useQuotes'
 import { useProjects } from '@/hooks/useProjects'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Select } from '@/components/ui/select'
 import { Plus, Search, Trash2, ExternalLink } from 'lucide-react'
 import type { QuoteStatus } from '@/types/database'
 import { toast } from 'sonner'
@@ -30,26 +28,21 @@ export default function QuotesPage() {
   const createQuote = useCreateQuote()
   const deleteQuote = useDeleteQuote()
 
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [form, setForm] = useState({ project_id: '', title: '', quote_no: '' })
+  const navigate = useNavigate()
+  const [projectId, setProjectId] = useState('')
   const [search, setSearch] = useState('')
 
   const filtered = quotes.filter(q =>
     q.title.includes(search) || (q.quote_no ?? '').includes(search)
   )
 
+  // 選案件 → 一鍵建立（編號、名稱自動給）→ 直接進報價單加品項
   async function handleCreate() {
-    if (!form.project_id) { toast.error('請選擇案件'); return }
-    if (!form.title.trim()) { toast.error('請輸入報價單名稱'); return }
+    if (!projectId) { toast.error('先選要報價的案件'); return }
     try {
-      await createQuote.mutateAsync({
-        project_id: form.project_id,
-        title: form.title,
-        quote_no: form.quote_no || undefined,
-      })
-      toast.success('報價單已建立')
-      setDialogOpen(false)
-      setForm({ project_id: '', title: '', quote_no: '' })
+      const q = await createQuote.mutateAsync({ project_id: projectId })
+      toast.success(`已建立 ${q.quote_no ?? '報價單'}`)
+      navigate({ to: '/quotes/$id', params: { id: q.id } })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '建立失敗')
     }
@@ -69,9 +62,13 @@ export default function QuotesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">報價單</h1>
-        <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" />新增報價單</Button>
+      <h1 className="text-2xl font-bold">報價單</h1>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+        <div className="sm:w-80">
+          <ProjectSelect projects={projects} value={projectId} onChange={setProjectId} emptyLabel="— 選案件 —" />
+        </div>
+        <Button onClick={handleCreate} disabled={createQuote.isPending}><Plus className="mr-2 h-4 w-4" />新增報價單</Button>
       </div>
 
       <div className="relative max-w-sm">
@@ -139,29 +136,6 @@ export default function QuotesPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>新增報價單</DialogTitle>
-            <DialogDescription>選擇案件並建立新的報價單</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div>
-              <Label>案件 *</Label>
-              <Select value={form.project_id} onChange={e => setForm({ ...form, project_id: e.target.value })}>
-                <option value="">— 選擇案件 —</option>
-                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </Select>
-            </div>
-            <div><Label>報價單名稱 *</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="例：一樓裝修報價" /></div>
-            <div><Label>報價單編號</Label><Input value={form.quote_no} onChange={e => setForm({ ...form, quote_no: e.target.value })} placeholder="選填" /></div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>取消</Button>
-              <Button onClick={handleCreate}>建立</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

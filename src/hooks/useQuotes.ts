@@ -54,9 +54,10 @@ export function useQuoteItems(quoteId?: string) {
 export function useCreateQuote() {
   const qc = useQueryClient()
   return useMutation({
+    // 編號與名稱不填時由資料庫自動給（Q年月-流水號、「案名 報價」）
     mutationFn: async (input: {
       project_id: string
-      title: string
+      title?: string
       quote_no?: string
       quote_date?: string
       valid_until?: string

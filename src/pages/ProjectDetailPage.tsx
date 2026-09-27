@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useParams, Link } from '@tanstack/react-router'
+import { useParams, Link, useNavigate } from '@tanstack/react-router'
 import { useProject, useUpdateProject } from '@/hooks/useProjects'
-import { useQuotes } from '@/hooks/useQuotes'
+import { useQuotes, useCreateQuote } from '@/hooks/useQuotes'
 import { useReceivables } from '@/hooks/useReceivables'
 import { useExpenses } from '@/hooks/useExpenses'
 import { usePayables } from '@/hooks/usePayables'
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ProjectStatus } from '@/types/database'
 import { RECEIVABLE_STATUS_LABELS, PAYABLE_STATUS_LABELS, EXPENSE_CATEGORY_LABELS } from '@/types/database'
@@ -72,6 +72,20 @@ export default function ProjectDetailPage() {
   const [tab, setTab] = useState<Tab>('info')
 
   const { data: quotes = [] } = useQuotes(id)
+  const createQuote = useCreateQuote()
+  const navigate = useNavigate()
+
+  // 一鍵新增報價單（編號、名稱自動給），直接進去加品項
+  async function handleNewQuote() {
+    if (!id) return
+    try {
+      const q = await createQuote.mutateAsync({ project_id: id })
+      toast.success(`已建立 ${q.quote_no ?? '報價單'}`)
+      navigate({ to: '/quotes/$id', params: { id: q.id } })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '建立失敗')
+    }
+  }
   const { data: receivables = [] } = useReceivables(id)
   const { data: expenses = [] } = useExpenses(id)
   const { data: payables = [] } = usePayables(id)
@@ -161,7 +175,10 @@ export default function ProjectDetailPage() {
 
       {tab === 'quotes' && (
         <Card>
-          <CardHeader><CardTitle className="text-base">報價單 ({quotes.length})</CardTitle></CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">報價單 ({quotes.length})</CardTitle>
+            <Button size="sm" onClick={handleNewQuote} disabled={createQuote.isPending}><Plus className="mr-1 h-4 w-4" />新增報價單</Button>
+          </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>

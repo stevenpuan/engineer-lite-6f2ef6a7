@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
-import { ArrowLeft, Copy, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Check, Copy, Pencil, Plus, Trash2, X } from 'lucide-react'
 import type { QuoteStatus } from '@/types/database'
 import { toast } from 'sonner'
 
@@ -37,6 +37,19 @@ export default function QuoteDetailPage() {
   const { data: priceBook = [] } = usePriceBook()
   const rememberPrice = useRememberPrice()
   const newVersion = useQuoteNewVersion()
+  const [titleDraft, setTitleDraft] = useState<string | null>(null)
+
+  async function saveTitle() {
+    const t = (titleDraft ?? '').trim()
+    if (!id || !t || t === quote?.title) { setTitleDraft(null); return }
+    try {
+      await updateQuote.mutateAsync({ id, title: t })
+      toast.success('名稱已更新')
+      setTitleDraft(null)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '更新失敗')
+    }
+  }
 
   // 選到常用品項就自動帶出單位與單價
   function handleDescriptionChange(value: string) {
@@ -114,7 +127,20 @@ export default function QuoteDetailPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Link to="/quotes"><Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button></Link>
-        <h1 className="text-2xl font-bold">{quote.title}</h1>
+        {titleDraft === null ? (
+          <button type="button" className="group flex items-center gap-2 text-left" onClick={() => setTitleDraft(quote.title)} title="改名稱">
+            <h1 className="text-2xl font-bold">{quote.title}</h1>
+            <Pencil className="h-4 w-4 text-muted-foreground opacity-60 group-hover:opacity-100" />
+          </button>
+        ) : (
+          <div className="flex items-center gap-1">
+            <Input autoFocus value={titleDraft} maxLength={200} className="h-9 w-64"
+              onChange={e => setTitleDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') setTitleDraft(null) }} />
+            <Button variant="ghost" size="icon" onClick={saveTitle} aria-label="儲存"><Check className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => setTitleDraft(null)} aria-label="取消"><X className="h-4 w-4" /></Button>
+          </div>
+        )}
         <Badge className={statusStyle[quote.status]} variant="secondary">{quote.status}</Badge>
         {(quote.version ?? 1) > 1 && <Badge variant="outline">v{quote.version}</Badge>}
         <Button variant="outline" size="sm" className="ml-auto" onClick={handleNewVersion} disabled={newVersion.isPending}>

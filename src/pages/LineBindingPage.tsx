@@ -153,7 +153,7 @@ export default function LineBindingPage() {
             <li>在上方按「產生綁定碼」</li>
             <li>把綁定碼傳給官方帳號</li>
           </ol>
-          <p className="text-muted-foreground">店內成員也可以由老闆在下方「店內成員的 LINE」發邀請，成員不用登入網頁。</p>
+          <p className="text-muted-foreground">店內成員也可以由老闆在上方「店內成員的 LINE」發邀請，成員不用登入網頁。</p>
           <div className="pt-2">
             <div className="font-medium mb-1">LINE 裡可以用的指令</div>
             <div className="flex flex-wrap gap-1.5">
