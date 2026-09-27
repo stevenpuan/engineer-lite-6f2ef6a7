@@ -158,7 +158,7 @@ export default function ProjectDetailPage() {
                     <TableCell className="font-medium">{q.title}</TableCell>
                     <TableCell className="text-muted-foreground">{q.quote_no ?? '—'}</TableCell>
                     <TableCell className="text-right">${q.total.toLocaleString()}</TableCell>
-                    <TableCell><Badge className={quoteStatusStyle[q.status] ?? ''} variant="secondary">{q.status}</Badge></TableCell>
+                    <TableCell><StatusBadge status={q.status} /></TableCell>
                     <TableCell>
                       <Link to="/quotes/$id" params={{ id: q.id }}><Button variant="ghost" size="icon"><ExternalLink className="h-4 w-4" /></Button></Link>
                     </TableCell>
@@ -193,7 +193,7 @@ export default function ProjectDetailPage() {
                     <TableCell className="font-medium">{r.label}</TableCell>
                     <TableCell className="text-right">${Number(r.amount).toLocaleString()}</TableCell>
                     <TableCell>{r.due_date ?? '—'}</TableCell>
-                    <TableCell><Badge className={receivableStatusStyle[r.status] ?? ''} variant="secondary">{RECEIVABLE_STATUS_LABELS[r.status]}</Badge></TableCell>
+                    <TableCell><StatusBadge status={RECEIVABLE_STATUS_LABELS[r.status]} /></TableCell>
                   </TableRow>
                 ))}
                 {receivables.length === 0 && (
@@ -227,7 +227,7 @@ export default function ProjectDetailPage() {
                     <TableCell className="font-medium">{e.description}</TableCell>
                     <TableCell>{EXPENSE_CATEGORY_LABELS[e.category] ?? e.category}</TableCell>
                     <TableCell className="text-right">${Number(e.amount).toLocaleString()}</TableCell>
-                    <TableCell><Badge className={expenseStatusStyle[e.status] ?? ''} variant="secondary">{expenseStatusLabel[e.status] ?? e.status}</Badge></TableCell>
+                    <TableCell><StatusBadge status={expenseStatusLabel[e.status] ?? e.status} /></TableCell>
                   </TableRow>
                 ))}
                 {expenses.length === 0 && (
@@ -261,7 +261,7 @@ export default function ProjectDetailPage() {
                     <TableCell>{p.description ?? '—'}</TableCell>
                     <TableCell className="text-right">${Number(p.amount).toLocaleString()}</TableCell>
                     <TableCell>{p.due_date ?? '—'}</TableCell>
-                    <TableCell><Badge className={payableStatusStyle[p.status] ?? ''} variant="secondary">{PAYABLE_STATUS_LABELS[p.status]}</Badge></TableCell>
+                    <TableCell><StatusBadge status={PAYABLE_STATUS_LABELS[p.status]} /></TableCell>
                   </TableRow>
                 ))}
                 {payables.length === 0 && (
