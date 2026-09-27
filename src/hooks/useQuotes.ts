@@ -14,7 +14,7 @@ export function useQuotes(projectId?: string) {
       if (projectId) q = q.eq('project_id', projectId)
       const { data, error } = await q
       if (error) throw error
-      return data as Quote[]
+      return data as unknown as Quote[]
     },
   })
 }
@@ -30,7 +30,7 @@ export function useQuote(id?: string) {
         .eq('id', id!)
         .single()
       if (error) throw error
-      return data as Quote
+      return data as unknown as Quote
     },
   })
 }
