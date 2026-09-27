@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useCanDelete } from '@/hooks/useCanDelete'
 import { useExpenses, useCreateExpense, useDeleteExpense } from '@/hooks/useExpenses'
 import { useProjects } from '@/hooks/useProjects'
+import { ProjectSelect } from '@/components/ProjectSelect'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -194,10 +195,7 @@ export default function ExpensesPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>案件</Label>
-                <Select value={form.project_id} onChange={e => setForm({ ...form, project_id: e.target.value })}>
-                  <option value="">公司支出（不歸工地）</option>
-                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </Select>
+                <ProjectSelect projects={projects} value={form.project_id} onChange={id => setForm({ ...form, project_id: id })} emptyLabel="公司支出（不歸工地）" />
               </div>
               <div>
                 <Label>分類</Label>

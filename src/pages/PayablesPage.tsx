@@ -3,6 +3,7 @@ import { useCanDelete } from '@/hooks/useCanDelete'
 import { usePayables, useCreatePayable, useDeletePayable, usePayments, useCreatePayment, useDeletePayment } from '@/hooks/usePayables'
 import { SettlementDialog } from '@/components/SettlementDialog'
 import { useProjects } from '@/hooks/useProjects'
+import { ProjectSelect } from '@/components/ProjectSelect'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Select } from '@/components/ui/select'
 import { Plus, Search, Trash2, Banknote } from 'lucide-react'
 import { PAYABLE_STATUS_LABELS, type PayableStatus } from '@/types/database'
 import { toast } from 'sonner'
@@ -164,10 +164,7 @@ export default function PayablesPage() {
           <div className="space-y-4 mt-4">
             <div>
               <Label>案件</Label>
-              <Select value={form.project_id} onChange={e => setForm({ ...form, project_id: e.target.value })}>
-                <option value="">— 不指定案件 —</option>
-                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </Select>
+              <ProjectSelect projects={projects} value={form.project_id} onChange={id => setForm({ ...form, project_id: id })} emptyLabel="— 不指定案件 —" />
             </div>
             <div><Label>廠商名稱 *</Label><Input value={form.vendor_name} onChange={e => setForm({ ...form, vendor_name: e.target.value })} /></div>
             <div><Label>說明</Label><Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>

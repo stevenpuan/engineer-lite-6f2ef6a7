@@ -24,6 +24,8 @@ const CATEGORIES: [string, string][] = [
 ]
 const CATEGORY_LABEL = Object.fromEntries(CATEGORIES)
 
+const MENU_COMMANDS = ['回報進度', '我的案子', '拍照記帳', '收款狀況', '付款提醒', '問一下']
+
 const HELP =
   '可以用下方選單，或直接輸入：\n' +
   '・回報進度\n・我的案子\n・拍照記帳（或直接傳收據照片）\n・收款狀況\n・付款提醒'
@@ -119,17 +121,62 @@ async function getCtx(uid: string): Promise<Ctx | null> {
   return rows?.[0] ?? null
 }
 
+// ── 選案件（案件多時：最近動過的排前面，其餘用關鍵字找）──
+
+type ProjectRow = {
+  id: string; name: string; overall_percent: number; last_report_at: string | null
+  client_name: string | null; status: string; my_recent: boolean; total: number
+}
+type PickFor = 'report' | 'exp'
+const PICK_SHOWN = 10
+
+async function listProjects(uid: string, q: string | null = null, limit = PICK_SHOWN) {
+  return await rpc<ProjectRow[]>('line_projects', { _line_user_id: uid, _limit: limit, _q: q })
+}
+
+function projectItems(rows: ProjectRow[], pick: PickFor): QuickItem[] {
+  return rows.map((p) => {
+    const tag = p.my_recent ? '（剛回報）' : p.status !== '進行中' ? `（${p.status}）` : ''
+    return pick === 'report'
+      ? { label: `${p.name} ${p.overall_percent}%${tag}`, data: `a=proj&p=${p.id}`, display: p.name }
+      : { label: `${p.name}${tag}`, data: `a=exp_proj&p=${p.id}`, display: p.name }
+  })
+}
+
+const SEARCH_HINT = '找不到的話，直接打案名、客戶或地址的關鍵字（例如「中山路」「陳宅」）。'
+
+// 使用者在選案件的步驟打字 → 用關鍵字找
+async function searchProjects(uid: string, token: string, q: string, pick: PickFor, data: Record<string, unknown>) {
+  const rows = await listProjects(uid, q, 12)
+  if (!rows.length) {
+    return reply(token, [text(`找不到「${q}」的案件，換個關鍵字試試。`, [{ label: '取消', text: '取消' }])])
+  }
+  if (rows.length === 1) {
+    const p = rows[0]
+    if (pick === 'report') {
+      await rpc('line_pending_clear', { _line_user_id: uid })
+      return flowStages(uid, token, p.id)
+    }
+    return chooseExpenseProject(uid, token, data, p.id, p.name)
+  }
+  const more = rows[0].total > rows.length ? `\n（共 ${rows[0].total} 件，只列前 ${rows.length} 件，可以再打詳細一點）` : ''
+  const items = projectItems(rows, pick)
+  items.push({ label: '取消', text: '取消' })
+  return reply(token, [text(`「${q}」找到這些案件：${more}`, items)])
+}
+
 // ── flows ──
 
 async function flowProjects(uid: string, token: string) {
-  const projects = await rpc<{ id: string; name: string; overall_percent: number }[]>('line_projects', { _line_user_id: uid })
-  if (!projects.length) return reply(token, [text('目前沒有「進行中」的案件。')])
-  await reply(token, [
-    text('要回報哪個案件？', projects.map((p) => ({ label: `${p.name} ${p.overall_percent}%`, data: `a=proj&p=${p.id}`, display: p.name }))),
-  ])
+  const projects = await listProjects(uid)
+  await rpc('line_pending_set', { _line_user_id: uid, _kind: 'report_project', _data: {} })
+  if (!projects.length) return reply(token, [text('目前沒有「進行中」的案件。\n也可以直接打案名關鍵字找洽談中或已完工的案件。', [{ label: '取消', text: '取消' }])])
+  const hint = projects[0].total > projects.length ? `\n\n進行中共 ${projects[0].total} 件，這裡列最近動過的 ${projects.length} 件。\n${SEARCH_HINT}` : ''
+  await reply(token, [text(`要回報哪個案件？${hint}`, projectItems(projects, 'report'))])
 }
 
 async function flowStages(uid: string, token: string, projectId: string) {
+  await rpc('line_pending_clear', { _line_user_id: uid })
   const stages = await rpc<{ id: string; name: string; percent: number; project_name: string }[]>('line_stages', {
     _line_user_id: uid, _project_id: projectId,
   })
@@ -155,10 +202,11 @@ async function flowReport(uid: string, token: string, stageId: string, percent: 
 }
 
 async function flowMyProjects(uid: string, token: string) {
-  const projects = await rpc<{ name: string; overall_percent: number; last_report_at: string | null }[]>('line_projects', { _line_user_id: uid })
+  const projects = await listProjects(uid, null, 30)
   if (!projects.length) return reply(token, [text('目前沒有「進行中」的案件。')])
   const lines = projects.map((p) => `・${p.name}  ${p.overall_percent}%（${daysAgo(p.last_report_at)}）`)
-  await reply(token, [text(`進行中案件 ${projects.length} 件\n\n${lines.join('\n')}`, [{ label: '回報進度', text: '回報進度' }])])
+  const more = projects[0].total > projects.length ? `\n…還有 ${projects[0].total - projects.length} 件，請到網頁版查看` : ''
+  await reply(token, [text(`進行中案件 ${projects[0].total} 件\n\n${lines.join('\n')}${more}`, [{ label: '回報進度', text: '回報進度' }])])
 }
 
 type Summary = {
@@ -206,10 +254,20 @@ async function askAmount(uid: string, token: string, photoPath: string | null, l
 
 async function askExpenseProject(uid: string, token: string, data: Record<string, unknown>) {
   await rpc('line_pending_set', { _line_user_id: uid, _kind: 'expense_project', _data: data })
-  const projects = await rpc<{ id: string; name: string }[]>('line_projects', { _line_user_id: uid })
-  const items: QuickItem[] = projects.slice(0, 11).map((p) => ({ label: p.name, data: `a=exp_proj&p=${p.id}` }))
+  const projects = await listProjects(uid)
+  const items = projectItems(projects, 'exp')
   items.push({ label: '公司支出（不歸案件）', data: 'a=exp_proj&p=none' }, { label: '取消', text: '取消' })
-  await reply(token, [text(`金額 ${money(data.amount as number)}，記在哪個案件？`, items)])
+  const hint = projects.length && projects[0].total > projects.length
+    ? `\n\n列出最近動過的 ${projects.length} 件（進行中共 ${projects[0].total} 件）。\n${SEARCH_HINT}`
+    : `\n\n${SEARCH_HINT}`
+  await reply(token, [text(`金額 ${money(data.amount as number)}，記在哪個案件？${hint}`, items)])
+}
+
+// 記帳選好案件：辨識時已確認過類別就直接寫入，否則問類別
+async function chooseExpenseProject(uid: string, token: string, data: Record<string, unknown>, projectId: string | null, projectName: string | null) {
+  const next: Record<string, unknown> = { ...data, project_id: projectId, project_name: projectName }
+  if (next.category) return saveExpense(uid, token, next, next.category as string)
+  return askExpenseCategory(uid, token, next)
 }
 
 async function askExpenseCategory(uid: string, token: string, data: Record<string, unknown>) {
@@ -372,15 +430,11 @@ async function handle(ev: any) {
       if (!pending || pending.data.amount === undefined) return reply(token, [text('這筆記帳已逾時，請重新開始。', [{ label: '拍照記帳', text: '拍照記帳' }])])
       if (a === 'exp_proj') {
         const p = q.get('p')
-        let projectName: string | null = null
-        if (p && p !== 'none') {
-          const projects = await rpc<{ id: string; name: string }[]>('line_projects', { _line_user_id: uid })
-          projectName = projects.find((x) => x.id === p)?.name ?? null
-        }
-        const next: Record<string, unknown> = { ...pending.data, project_id: p === 'none' ? null : p, project_name: projectName }
-        // 辨識時已確認過類別就直接寫入
-        if (next.category) return saveExpense(uid, token, next, next.category as string)
-        return askExpenseCategory(uid, token, next)
+        if (!p || p === 'none') return chooseExpenseProject(uid, token, pending.data, null, null)
+        // 只查得到本店案件（line_create_expense 寫入時也會再驗證一次）
+        const hit = (await rpc<{ id: string; name: string }[]>('line_project_by_id', { _line_user_id: uid, _project_id: p }))[0]
+        if (!hit) return reply(token, [text('找不到這個案件，可能已被刪除。')])
+        return chooseExpenseProject(uid, token, pending.data, p, hit.name)
       }
       return saveExpense(uid, token, pending.data, q.get('c') ?? 'other')
     }
@@ -398,10 +452,16 @@ async function handle(ev: any) {
       return reply(token, [text('已取消。')])
     }
     const pending = (await rpc<{ kind: string; data: Record<string, unknown> }[]>('line_pending_get', { _line_user_id: uid }))[0]
-    if (pending?.kind === 'expense_amount') {
+    const isCommand = MENU_COMMANDS.includes(t)
+    // 選案件的步驟打字 → 關鍵字找案件
+    if (!isCommand && (pending?.kind === 'report_project' || pending?.kind === 'expense_project')) {
+      return searchProjects(uid, token, t, pending.kind === 'report_project' ? 'report' : 'exp', pending.data)
+    }
+    if (isCommand && pending) await rpc('line_pending_clear', { _line_user_id: uid })
+    else if (pending?.kind === 'expense_amount') {
       const amount = parseAmount(t)
       if (amount && amount > 0) return askExpenseProject(uid, token, { ...pending.data, amount })
-      if (!['回報進度', '我的案子', '拍照記帳', '收款狀況', '付款提醒', '問一下'].includes(t)) {
+      if (!isCommand) {
         return reply(token, [text('看不懂這個金額，請只輸入數字（例如 1250）。', [{ label: '取消', text: '取消' }])])
       }
       await rpc('line_pending_clear', { _line_user_id: uid })
