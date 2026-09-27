@@ -2,7 +2,7 @@ import { useClients } from '@/hooks/useClients'
 import { useProjects } from '@/hooks/useProjects'
 import { useFinanceSummary } from '@/hooks/useFinanceSummary'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { Users, FolderKanban, HardHat, Plus } from 'lucide-react'
 import { useDashboardMonth } from '@/hooks/useCoreExtras'
 import { cn } from '@/lib/utils'
@@ -44,9 +44,9 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">總覽</h1>
         <div className="flex gap-2">
-          <Button asChild size="sm"><Link to="/projects"><Plus className="mr-1 h-4 w-4" />案件</Link></Button>
-          <Button asChild size="sm" variant="outline"><Link to="/clients"><Plus className="mr-1 h-4 w-4" />客戶</Link></Button>
-          <Button asChild size="sm" variant="outline"><Link to="/quotes"><Plus className="mr-1 h-4 w-4" />報價</Link></Button>
+          <Link to="/projects" className={buttonVariants({ size: 'sm' })}><Plus className="mr-1 h-4 w-4" />案件</Link>
+          <Link to="/clients" className={buttonVariants({ size: 'sm', variant: 'outline' })}><Plus className="mr-1 h-4 w-4" />客戶</Link>
+          <Link to="/quotes" className={buttonVariants({ size: 'sm', variant: 'outline' })}><Plus className="mr-1 h-4 w-4" />報價</Link>
         </div>
       </div>
 
