@@ -18,6 +18,12 @@ const statusStyles: Record<string, string> = {
   '逾期': 'bg-status-cancelled text-status-cancelled-foreground',
   '待付': 'bg-status-pending text-status-pending-foreground',
   '已付': 'bg-status-done text-status-done-foreground',
+  // 報價單狀態
+  '草稿': 'bg-status-closed text-status-closed-foreground',
+  '已送出': 'bg-status-active text-status-active-foreground',
+  '已接受': 'bg-status-done text-status-done-foreground',
+  '已拒絕': 'bg-status-cancelled text-status-cancelled-foreground',
+  '已過期': 'bg-status-pending text-status-pending-foreground',
 }
 
 export function StatusBadge({ status, className }: { status: string; className?: string }) {

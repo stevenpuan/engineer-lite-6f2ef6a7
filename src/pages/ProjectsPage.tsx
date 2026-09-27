@@ -6,7 +6,6 @@ import { useClients } from '@/hooks/useClients'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Select } from '@/components/ui/select'
@@ -17,14 +16,8 @@ import { toast } from 'sonner'
 import { useModules } from '@/contexts/ModuleContext'
 import { useProjectProgress } from '@/hooks/useProgress'
 import { ProgressBar } from '@/components/ProjectProgressTab'
-
-const statusColor: Record<string, string> = {
-  '洽談中': 'bg-yellow-100 text-yellow-800',
-  '進行中': 'bg-blue-100 text-blue-800',
-  '完工': 'bg-green-100 text-green-800',
-  '結案': 'bg-gray-100 text-gray-800',
-  '取消': 'bg-red-100 text-red-800',
-}
+import { StatusBadge } from '@/components/StatusBadge'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 const allStatuses: ProjectStatus[] = ['洽談中', '進行中', '完工', '結案', '取消']
 
