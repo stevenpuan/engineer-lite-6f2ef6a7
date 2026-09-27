@@ -22,10 +22,10 @@ export default function DashboardPage() {
   const activeProjects = projects.filter(p => p.status === '進行中')
 
   // Aggregate finance numbers across all projects
-  const totalQuoted = financeSummary.reduce((s, f) => s + (f.total_quoted ?? 0), 0)
-  const totalReceived = financeSummary.reduce((s, f) => s + (f.total_received ?? 0), 0)
-  const totalExpenses = financeSummary.reduce((s, f) => s + (f.total_expenses ?? 0), 0)
-  const totalPayables = financeSummary.reduce((s, f) => s + (f.total_payable ?? 0), 0)
+  const totalQuoted = financeSummary.reduce((s, f) => s + (f.quote_total ?? 0), 0)
+  const totalReceived = financeSummary.reduce((s, f) => s + (f.received_total ?? 0), 0)
+  const totalExpenses = financeSummary.reduce((s, f) => s + (f.expense_total ?? 0), 0)
+  const totalPayables = financeSummary.reduce((s, f) => s + (f.payable_total ?? 0), 0)
 
   return (
     <div className="space-y-6">
@@ -118,14 +118,14 @@ export default function DashboardPage() {
                 return (
                   <Link
                     key={p.id}
-                    to={`/projects/${p.id}`}
+                    to="/projects/$id" params={{ id: p.id }}
                     className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent/50 transition-colors"
                   >
                     <div>
                       <div className="font-medium">{p.name}</div>
                       <div className="text-sm text-muted-foreground">
                         {(p.client as { name: string } | null)?.name ?? '無客戶'}
-                        {pf && ` · 收 $${(pf.total_received ?? 0).toLocaleString()} / 支 $${(pf.total_expenses ?? 0).toLocaleString()}`}
+                        {pf && ` · 收 $${(pf.received_total ?? 0).toLocaleString()} / 支 $${(pf.expense_total ?? 0).toLocaleString()}`}
                       </div>
                     </div>
                     <Badge className={statusColor[p.status] ?? ''} variant="secondary">

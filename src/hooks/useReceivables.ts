@@ -44,7 +44,7 @@ export function useCreateReceivable() {
       due_date?: string
       notes?: string
     }) => {
-      const { data, error } = await supabase.from('receivables').insert(input).select().single()
+      const { data, error } = await supabase.from('receivables').insert(input as never).select().single()
       if (error) throw error
       return data
     },
@@ -56,7 +56,7 @@ export function useUpdateReceivable() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<Receivable> & { id: string }) => {
-      const { data, error } = await supabase.from('receivables').update(input).eq('id', id).select().single()
+      const { data, error } = await supabase.from('receivables').update(input as never).eq('id', id).select().single()
       if (error) throw error
       return data
     },
@@ -88,7 +88,7 @@ export function useCreateReceipt() {
       reference_no?: string
       notes?: string
     }) => {
-      const { data, error } = await supabase.from('receipts').insert(input).select().single()
+      const { data, error } = await supabase.from('receipts').insert(input as never).select().single()
       if (error) throw error
       return data
     },

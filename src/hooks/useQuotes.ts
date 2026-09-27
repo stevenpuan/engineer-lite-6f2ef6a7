@@ -61,7 +61,7 @@ export function useCreateQuote() {
       valid_until?: string
       notes?: string
     }) => {
-      const { data, error } = await supabase.from('quotes').insert(input).select().single()
+      const { data, error } = await supabase.from('quotes').insert(input as never).select().single()
       if (error) throw error
       return data as Quote
     },
@@ -73,7 +73,7 @@ export function useUpdateQuote() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<Quote> & { id: string }) => {
-      const { data, error } = await supabase.from('quotes').update(input).eq('id', id).select().single()
+      const { data, error } = await supabase.from('quotes').update(input as never).eq('id', id).select().single()
       if (error) throw error
       return data
     },
@@ -106,7 +106,7 @@ export function useCreateQuoteItem() {
       amount?: number
       sort_order?: number
     }) => {
-      const { data, error } = await supabase.from('quote_items').insert(input).select().single()
+      const { data, error } = await supabase.from('quote_items').insert(input as never).select().single()
       if (error) throw error
       return data
     },
@@ -118,7 +118,7 @@ export function useUpdateQuoteItem() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<QuoteItem> & { id: string }) => {
-      const { data, error } = await supabase.from('quote_items').update(input).eq('id', id).select().single()
+      const { data, error } = await supabase.from('quote_items').update(input as never).eq('id', id).select().single()
       if (error) throw error
       return data
     },

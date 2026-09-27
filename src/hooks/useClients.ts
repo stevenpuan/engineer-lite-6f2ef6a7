@@ -20,7 +20,7 @@ export function useCreateClient() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (input: Omit<Client, 'id' | 'tenant_id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase.from('clients').insert(input).select().single()
+      const { data, error } = await supabase.from('clients').insert(input as never).select().single()
       if (error) throw error
       return data
     },
@@ -32,7 +32,7 @@ export function useUpdateClient() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...input }: Partial<Client> & { id: string }) => {
-      const { data, error } = await supabase.from('clients').update(input).eq('id', id).select().single()
+      const { data, error } = await supabase.from('clients').update(input as never).eq('id', id).select().single()
       if (error) throw error
       return data
     },
