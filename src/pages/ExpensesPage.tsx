@@ -9,21 +9,16 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
 import { Plus, Search, Trash2, Image as ImageIcon } from 'lucide-react'
 import { openExpensePhoto } from '@/hooks/useCoreExtras'
 import { EXPENSE_CATEGORY_LABELS, type Expense, type ExpenseCategory } from '@/types/database'
 import { toast } from 'sonner'
+import { StatusBadge } from '@/components/StatusBadge'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 const categories = Object.entries(EXPENSE_CATEGORY_LABELS) as [ExpenseCategory, string][]
 
-const statusStyle: Record<string, string> = {
-  unpaid: 'bg-yellow-100 text-yellow-800',
-  paid: 'bg-green-100 text-green-800',
-  partial: 'bg-blue-100 text-blue-800',
-  cancelled: 'bg-gray-100 text-gray-500',
-}
 const statusLabel: Record<string, string> = {
   unpaid: '未付',
   paid: '已付',
@@ -88,7 +83,6 @@ export default function ExpensesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('確定要刪除？')) return
     try {
       await deleteExpense.mutateAsync(id)
       toast.success('已刪除')
@@ -143,9 +137,16 @@ export default function ExpensesPage() {
                 </div>
                 <div className="text-sm text-muted-foreground flex items-center gap-2">
                   <span>{e.expense_date}</span>
-                  <Badge className={statusStyle[e.status] ?? ''} variant="secondary">{statusLabel[e.status] ?? e.status}</Badge>
+                  <StatusBadge status={statusLabel[e.status] ?? e.status} />
                   <span>{EXPENSE_CATEGORY_LABELS[e.category] ?? e.category}</span>
-                  {canDelete && (<Button variant="ghost" size="icon" aria-label="刪除支出" className="ml-auto h-8 w-8" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
+                  {canDelete && (
+                    <ConfirmDialog
+                      title="刪除支出"
+                      description={`確定要刪除「${e.description}」？`}
+                      onConfirm={() => handleDelete(e.id)}
+                      trigger={<Button variant="ghost" size="icon" aria-label="刪除支出" className="ml-auto h-8 w-8"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                    />
+                  )}
                 </div>
                 <ReceiptMeta e={e} />
               </div>
@@ -182,9 +183,16 @@ export default function ExpensesPage() {
                     <TableCell>{EXPENSE_CATEGORY_LABELS[e.category] ?? e.category}</TableCell>
                     <TableCell>{(e.project as { name: string } | null)?.name ?? (e.is_overhead ? '公司支出' : '—')}</TableCell>
                     <TableCell className="text-right">${Number(e.amount).toLocaleString()}</TableCell>
-                    <TableCell><Badge className={statusStyle[e.status] ?? ''} variant="secondary">{statusLabel[e.status] ?? e.status}</Badge></TableCell>
+                    <TableCell><StatusBadge status={statusLabel[e.status] ?? e.status} /></TableCell>
                     <TableCell>
-                      {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
+                      {canDelete && (
+                        <ConfirmDialog
+                          title="刪除支出"
+                          description={`確定要刪除「${e.description}」？`}
+                          onConfirm={() => handleDelete(e.id)}
+                          trigger={<Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                        />
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
