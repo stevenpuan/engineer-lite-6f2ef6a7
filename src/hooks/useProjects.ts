@@ -8,7 +8,7 @@ export function useProjects() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('projects')
-        .select('*, client:clients(id, name)')
+        .select('*, client:clients!projects_client_same_tenant(id, name)')
         .order('created_at', { ascending: false })
       if (error) throw error
       return data as Project[]
@@ -23,7 +23,7 @@ export function useProject(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('projects')
-        .select('*, client:clients(id, name)')
+        .select('*, client:clients!projects_client_same_tenant(id, name)')
         .eq('id', id!)
         .single()
       if (error) throw error
