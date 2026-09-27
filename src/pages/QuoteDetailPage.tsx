@@ -23,7 +23,7 @@ const statusStyle: Record<QuoteStatus, string> = {
 const allStatuses: QuoteStatus[] = ['草稿', '已送出', '已接受', '已拒絕', '已過期']
 
 export default function QuoteDetailPage() {
-  const { id } = useParams<{ id: string }>()
+  const { id } = useParams({ strict: false }) as { id: string }
   const { data: quote, isLoading } = useQuote(id)
   const { data: items = [] } = useQuoteItems(id)
   const updateQuote = useUpdateQuote()

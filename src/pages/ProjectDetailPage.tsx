@@ -63,7 +63,7 @@ const expenseStatusLabel: Record<string, string> = {
 type Tab = 'info' | 'quotes' | 'receivables' | 'expenses' | 'payables'
 
 export default function ProjectDetailPage() {
-  const { id } = useParams<{ id: string }>()
+  const { id } = useParams({ strict: false }) as { id: string }
   const { data: project, isLoading } = useProject(id)
   const updateProject = useUpdateProject()
   const [tab, setTab] = useState<Tab>('info')
