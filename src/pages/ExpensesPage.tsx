@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useCanDelete } from '@/hooks/useCanDelete'
-import { useExpenses, useCreateExpense, useDeleteExpense, EXPENSE_ROW_LIMIT } from '@/hooks/useExpenses'
+import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, EXPENSE_ROW_LIMIT } from '@/hooks/useExpenses'
+import { useModules } from '@/contexts/ModuleContext'
 import { useProjects } from '@/hooks/useProjects'
 import { ProjectSelect } from '@/components/ProjectSelect'
 import { Button } from '@/components/ui/button'
@@ -10,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Select } from '@/components/ui/select'
-import { Plus, Search, Trash2, Image as ImageIcon } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil, Image as ImageIcon } from 'lucide-react'
 import { openExpensePhoto } from '@/hooks/useCoreExtras'
 import { EXPENSE_CATEGORY_LABELS, type Expense, type ExpenseCategory } from '@/types/database'
 import { toast } from 'sonner'
@@ -26,15 +27,20 @@ const statusLabel: Record<string, string> = {
   cancelled: '取消',
 }
 
+/** 台灣當地日期（不是 UTC，凌晨 0～8 點才不會記成前一天） */
+const todayLocal = () => new Date().toLocaleDateString('sv-SE')
+
 const emptyForm = {
   project_id: '',
-  expense_date: new Date().toISOString().slice(0, 10),
+  expense_date: todayLocal(),
   category: 'other' as string,
   description: '',
   amount: '',
   vendor_name: '',
   payment_method: '',
   notes: '',
+  receipt_no: '',
+  seller_tax_id: '',
 }
 
 export default function ExpensesPage() {
@@ -47,6 +53,10 @@ export default function ExpensesPage() {
   const { data: expenses = [], isLoading } = useExpenses(undefined, periodStart(period))
   const { data: projects = [] } = useProjects()
   const createExpense = useCreateExpense()
+  const updateExpense = useUpdateExpense()
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const { hasModule } = useModules()
+  const showInvoiceFields = hasModule('invoice')
   const deleteExpense = useDeleteExpense()
 
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -62,24 +72,57 @@ export default function ExpensesPage() {
   async function handleCreate() {
     if (!form.description.trim()) { toast.error('請輸入說明'); return }
     if (!form.amount) { toast.error('請輸入金額'); return }
+    const receiptNo = form.receipt_no.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+    if (receiptNo && !/^[A-Z]{2}\d{8}$/.test(receiptNo)) { toast.error('發票號碼格式：兩個英文字母加 8 位數字，例如 AB12345678'); return }
+    const sellerTaxId = form.seller_tax_id.replace(/\D/g, '')
+    if (sellerTaxId && sellerTaxId.length !== 8) { toast.error('統編是 8 位數字'); return }
+    const payload = {
+      project_id: form.project_id || null,
+      expense_date: form.expense_date,
+      category: form.category,
+      description: form.description,
+      amount: Number(form.amount),
+      vendor_name: form.vendor_name || null,
+      is_overhead: !form.project_id,
+      receipt_no: receiptNo || null,
+      seller_tax_id: sellerTaxId || null,
+    }
     try {
-      await createExpense.mutateAsync({
-        project_id: form.project_id || undefined,
-        expense_date: form.expense_date,
-        category: form.category,
-        description: form.description,
-        amount: Number(form.amount),
-        vendor_name: form.vendor_name || undefined,
-        payment_method: form.payment_method || undefined,
-        is_overhead: !form.project_id,
-        notes: form.notes || undefined,
-      })
-      toast.success('支出已登錄')
+      if (editingId) {
+        await updateExpense.mutateAsync({ id: editingId, ...payload } as never)
+        toast.success('已更新')
+      } else {
+        await createExpense.mutateAsync({ ...payload, payment_method: form.payment_method || undefined, notes: form.notes || undefined } as never)
+        toast.success('支出已登錄')
+      }
       setDialogOpen(false)
-      setForm(emptyForm)
+      setEditingId(null)
+      setForm({ ...emptyForm, expense_date: todayLocal() })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '建立失敗')
     }
+  }
+
+  function openCreate() {
+    setEditingId(null)
+    setForm({ ...emptyForm, expense_date: todayLocal() })
+    setDialogOpen(true)
+  }
+
+  function openEdit(e: Expense) {
+    setEditingId(e.id)
+    setForm({
+      ...emptyForm,
+      project_id: e.project_id ?? '',
+      expense_date: e.expense_date,
+      category: e.category,
+      description: e.description,
+      amount: String(e.amount),
+      vendor_name: e.vendor_name ?? '',
+      receipt_no: e.receipt_no ?? '',
+      seller_tax_id: e.seller_tax_id ?? '',
+    })
+    setDialogOpen(true)
   }
 
   async function handleDelete(id: string) {
@@ -97,7 +140,7 @@ export default function ExpensesPage() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">雜支支出</h1>
-        <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" />新增支出</Button>
+        <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />新增支出</Button>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -139,12 +182,13 @@ export default function ExpensesPage() {
                   <span>{e.expense_date}</span>
                   <StatusBadge status={statusLabel[e.status] ?? e.status} />
                   <span>{EXPENSE_CATEGORY_LABELS[e.category] ?? e.category}</span>
+                  <Button variant="ghost" size="icon" aria-label="編輯支出" className={canDelete ? 'ml-auto h-8 w-8' : 'ml-auto h-8 w-8'} onClick={() => openEdit(e)}><Pencil className="h-4 w-4" /></Button>
                   {canDelete && (
                     <ConfirmDialog
                       title="刪除支出"
                       description={`確定要刪除「${e.description}」？`}
                       onConfirm={() => handleDelete(e.id)}
-                      trigger={<Button variant="ghost" size="icon" aria-label="刪除支出" className="ml-auto h-8 w-8"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                      trigger={<Button variant="ghost" size="icon" aria-label="刪除支出" className="h-8 w-8"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
                     />
                   )}
                 </div>
@@ -164,7 +208,7 @@ export default function ExpensesPage() {
                   <TableHead>案件</TableHead>
                   <TableHead className="text-right">金額</TableHead>
                   <TableHead>狀態</TableHead>
-                  <TableHead className="w-16"></TableHead>
+                  <TableHead className="w-24"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -184,7 +228,8 @@ export default function ExpensesPage() {
                     <TableCell>{(e.project as { name: string } | null)?.name ?? (e.is_overhead ? '公司支出' : '—')}</TableCell>
                     <TableCell className="text-right">${Number(e.amount).toLocaleString()}</TableCell>
                     <TableCell><StatusBadge status={statusLabel[e.status] ?? e.status} /></TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <Button variant="ghost" size="icon" aria-label="編輯支出" onClick={() => openEdit(e)}><Pencil className="h-4 w-4" /></Button>
                       {canDelete && (
                         <ConfirmDialog
                           title="刪除支出"
@@ -208,8 +253,8 @@ export default function ExpensesPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增支出</DialogTitle>
-            <DialogDescription>記錄一筆支出</DialogDescription>
+            <DialogTitle>{editingId ? '編輯支出' : '新增支出'}</DialogTitle>
+            <DialogDescription>{editingId ? '修改這筆支出' : '記錄一筆支出'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-3">
@@ -230,9 +275,15 @@ export default function ExpensesPage() {
               <div><Label>日期</Label><Input type="date" value={form.expense_date} onChange={e => setForm({ ...form, expense_date: e.target.value })} /></div>
               <div><Label>廠商</Label><Input value={form.vendor_name} onChange={e => setForm({ ...form, vendor_name: e.target.value })} /></div>
             </div>
+            {showInvoiceFields && (
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>發票號碼</Label><Input value={form.receipt_no} onChange={e => setForm({ ...form, receipt_no: e.target.value })} placeholder="AB12345678（選填）" /></div>
+                <div><Label>賣方統編</Label><Input value={form.seller_tax_id} inputMode="numeric" onChange={e => setForm({ ...form, seller_tax_id: e.target.value })} placeholder="選填" /></div>
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>取消</Button>
-              <Button onClick={handleCreate}>登錄</Button>
+              <Button onClick={handleCreate}>{editingId ? '儲存' : '登錄'}</Button>
             </div>
           </div>
         </DialogContent>

@@ -9,9 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { ArrowLeft, ExternalLink, Plus } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Plus, Pencil } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { useClients } from '@/hooks/useClients'
 import { cn } from '@/lib/utils'
-import type { ProjectStatus } from '@/types/database'
+import type { Project, ProjectStatus } from '@/types/database'
 import { RECEIVABLE_STATUS_LABELS, PAYABLE_STATUS_LABELS, EXPENSE_CATEGORY_LABELS } from '@/types/database'
 import { toast } from 'sonner'
 import { useModules } from '@/contexts/ModuleContext'
@@ -19,6 +23,77 @@ import { ProjectProgressTab } from '@/components/ProjectProgressTab'
 import { StatusBadge } from '@/components/StatusBadge'
 
 const allStatuses: ProjectStatus[] = ['洽談中', '進行中', '完工', '結案', '取消']
+
+/** 編輯案件基本資料（名稱、客戶、地址、合約金額、日期、備註） */
+function ProjectEditDialog({ project, open, onOpenChange }: { project: Project; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const { data: clients = [] } = useClients()
+  const updateProject = useUpdateProject()
+  const init = () => ({
+    name: project.name,
+    client_id: project.client_id ?? '',
+    address: project.address ?? '',
+    contract_amount: project.contract_amount != null ? String(project.contract_amount) : '',
+    start_date: project.start_date ?? '',
+    end_date: project.end_date ?? '',
+    notes: project.notes ?? '',
+  })
+  const [f, setF] = useState(init)
+  const [openedFor, setOpenedFor] = useState<string | null>(null)
+  if (open && openedFor !== project.id + project.updated_at) { setOpenedFor(project.id + project.updated_at); setF(init()) }
+
+  async function save() {
+    if (!f.name.trim()) { toast.error('請輸入案件名稱'); return }
+    if (f.start_date && f.end_date && f.end_date < f.start_date) { toast.error('結束日期不能早於開始日期'); return }
+    try {
+      await updateProject.mutateAsync({
+        id: project.id,
+        name: f.name.trim(),
+        client_id: f.client_id || null,
+        address: f.address || null,
+        contract_amount: f.contract_amount ? Number(f.contract_amount) : null,
+        start_date: f.start_date || null,
+        end_date: f.end_date || null,
+        notes: f.notes || null,
+      })
+      toast.success('案件資料已更新')
+      onOpenChange(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '更新失敗')
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>編輯案件</DialogTitle>
+          <DialogDescription>修改案件基本資料</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 mt-2">
+          <div><Label>案件名稱 *</Label><Input value={f.name} onChange={e => setF({ ...f, name: e.target.value })} /></div>
+          <div>
+            <Label>客戶</Label>
+            <Select value={f.client_id} onChange={e => setF({ ...f, client_id: e.target.value })}>
+              <option value="">— 不指定 —</option>
+              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Select>
+          </div>
+          <div><Label>地址</Label><Input value={f.address} onChange={e => setF({ ...f, address: e.target.value })} /></div>
+          <div><Label>合約金額</Label><Input type="number" value={f.contract_amount} onChange={e => setF({ ...f, contract_amount: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>開始日期</Label><Input type="date" value={f.start_date} onChange={e => setF({ ...f, start_date: e.target.value })} /></div>
+            <div><Label>結束日期</Label><Input type="date" value={f.end_date} onChange={e => setF({ ...f, end_date: e.target.value })} /></div>
+          </div>
+          <div><Label>備註</Label><Input value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} /></div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
+            <Button onClick={save} disabled={updateProject.isPending}>儲存</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
 const expenseStatusLabel: Record<string, string> = {
   unpaid: '未付', paid: '已付', partial: '部分', cancelled: '取消',
 }
@@ -31,6 +106,7 @@ export default function ProjectDetailPage() {
   const { data: project, isLoading } = useProject(id)
   const updateProject = useUpdateProject()
   const [tab, setTab] = useState<Tab>('info')
+  const [editOpen, setEditOpen] = useState(false)
 
   const { data: quotes = [] } = useQuotes(id)
   const createQuote = useCreateQuote()
@@ -68,9 +144,9 @@ export default function ProjectDetailPage() {
     { key: 'info', label: '基本資料' },
     ...(hasModule('progress') ? [{ key: 'progress' as Tab, label: '進度' }] : []),
     ...(hasModule('quote') ? [{ key: 'quotes' as Tab, label: '報價單', count: quotes.length }] : []),
-    ...(hasModule('receivable') ? [{ key: 'receivables' as Tab, label: '收款', count: receivables.length }] : []),
+    ...(hasModule('receivable') ? [{ key: 'receivables' as Tab, label: '應收', count: receivables.length }] : []),
     ...(hasModule('payable') ? [
-      { key: 'expenses' as Tab, label: '支出', count: expenses.length },
+      { key: 'expenses' as Tab, label: '雜支', count: expenses.length },
       { key: 'payables' as Tab, label: '應付', count: payables.length },
     ] : []),
   ]
@@ -108,7 +184,10 @@ export default function ProjectDetailPage() {
       {tab === 'info' && (
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
-            <CardHeader><CardTitle className="text-base">基本資料</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">基本資料</CardTitle>
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}><Pencil className="mr-1 h-4 w-4" />編輯</Button>
+            </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">客戶</span><span>{(project.client as { name: string } | null)?.name ?? '—'}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">地址</span><span>{project.address ?? '—'}</span></div>
@@ -271,6 +350,7 @@ export default function ProjectDetailPage() {
           </CardContent>
         </Card>
       )}
+      <ProjectEditDialog project={project} open={editOpen} onOpenChange={setEditOpen} />
     </div>
   )
 }

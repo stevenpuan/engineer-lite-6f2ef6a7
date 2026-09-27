@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useCanDelete } from '@/hooks/useCanDelete'
-import { usePayables, useCreatePayable, useDeletePayable, usePayments, useCreatePayment, useDeletePayment } from '@/hooks/usePayables'
+import { usePayables, useCreatePayable, useUpdatePayable, useDeletePayable, usePayments, useCreatePayment, useDeletePayment } from '@/hooks/usePayables'
 import { SettlementDialog } from '@/components/SettlementDialog'
 import { useProjects } from '@/hooks/useProjects'
 import { ProjectSelect } from '@/components/ProjectSelect'
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { Plus, Search, Trash2, Banknote } from 'lucide-react'
+import { Plus, Search, Trash2, Banknote, Pencil } from 'lucide-react'
 import { PAYABLE_STATUS_LABELS } from '@/types/database'
 import { toast } from 'sonner'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -21,6 +21,8 @@ export default function PayablesPage() {
   const { data: payables = [], isLoading } = usePayables()
   const { data: projects = [] } = useProjects()
   const createPayable = useCreatePayable()
+  const updatePayable = useUpdatePayable()
+  const [editingId, setEditingId] = useState<string | null>(null)
   const deletePayable = useDeletePayable()
 
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -43,19 +45,44 @@ export default function PayablesPage() {
     if (!form.vendor_name.trim()) { toast.error('請輸入廠商名稱'); return }
     if (!form.amount) { toast.error('請輸入金額'); return }
     try {
-      await createPayable.mutateAsync({
-        project_id: form.project_id || undefined,
-        vendor_name: form.vendor_name,
-        description: form.description || undefined,
-        amount: Number(form.amount),
-        due_date: form.due_date || undefined,
-      })
-      toast.success('應付帳款已建立')
+      if (editingId) {
+        await updatePayable.mutateAsync({
+          id: editingId,
+          project_id: form.project_id || null,
+          vendor_name: form.vendor_name,
+          description: form.description || null,
+          amount: Number(form.amount),
+          due_date: form.due_date || null,
+        } as never)
+        toast.success('已更新')
+      } else {
+        await createPayable.mutateAsync({
+          project_id: form.project_id || undefined,
+          vendor_name: form.vendor_name,
+          description: form.description || undefined,
+          amount: Number(form.amount),
+          due_date: form.due_date || undefined,
+        })
+        toast.success('應付帳款已建立')
+      }
       setDialogOpen(false)
+      setEditingId(null)
       setForm({ project_id: '', vendor_name: '', description: '', amount: '', due_date: '' })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '建立失敗')
     }
+  }
+
+  function openCreate() {
+    setEditingId(null)
+    setForm({ project_id: '', vendor_name: '', description: '', amount: '', due_date: '' })
+    setDialogOpen(true)
+  }
+
+  function openEdit(p: (typeof payables)[number]) {
+    setEditingId(p.id)
+    setForm({ project_id: p.project_id ?? '', vendor_name: p.vendor_name, description: p.description ?? '', amount: String(p.amount), due_date: p.due_date ?? '' })
+    setDialogOpen(true)
   }
 
   async function handleDelete(id: string) {
@@ -73,7 +100,7 @@ export default function PayablesPage() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">應付帳款</h1>
-        <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" />新增應付</Button>
+        <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />新增應付</Button>
       </div>
 
       <div className="relative max-w-sm">
@@ -103,6 +130,7 @@ export default function PayablesPage() {
                       <Banknote className="mr-1 h-4 w-4" />登記付款
                     </Button>
                   )}
+                  <Button variant="ghost" size="icon" aria-label="編輯應付" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
                   {canDelete && (
                     <ConfirmDialog
                       title="刪除應付帳款"
@@ -146,6 +174,7 @@ export default function PayablesPage() {
                           <Banknote className="mr-1 h-4 w-4" />登記付款
                         </Button>
                       )}
+                      <Button variant="ghost" size="icon" aria-label="編輯應付" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
                       {canDelete && (
                         <ConfirmDialog
                           title="刪除應付帳款"
@@ -170,7 +199,7 @@ export default function PayablesPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增應付帳款</DialogTitle>
+            <DialogTitle>{editingId ? '編輯應付帳款' : '新增應付帳款'}</DialogTitle>
             <DialogDescription>記錄廠商應付款項</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
@@ -186,7 +215,7 @@ export default function PayablesPage() {
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>取消</Button>
-              <Button onClick={handleCreate}>建立</Button>
+              <Button onClick={handleCreate}>{editingId ? '儲存' : '建立'}</Button>
             </div>
           </div>
         </DialogContent>

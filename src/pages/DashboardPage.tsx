@@ -1,10 +1,10 @@
 import { useClients } from '@/hooks/useClients'
 import { useProjects } from '@/hooks/useProjects'
-import { useFinanceSummary } from '@/hooks/useFinanceSummary'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { buttonVariants } from '@/components/ui/button'
 import { Users, FolderKanban, HardHat, Plus } from 'lucide-react'
-import { useDashboardMonth } from '@/hooks/useCoreExtras'
+import { useDashboardMonth, useDashboardTotals } from '@/hooks/useCoreExtras'
+import { useFinanceSummary } from '@/hooks/useFinanceSummary'
 import { cn } from '@/lib/utils'
 import { Link } from '@tanstack/react-router'
 import { useModules } from '@/contexts/ModuleContext'
@@ -15,6 +15,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 export default function DashboardPage() {
   const { data: clients = [] } = useClients()
   const { data: projects = [] } = useProjects()
+  const { data: totals } = useDashboardTotals()
   const { data: financeSummary = [] } = useFinanceSummary()
   const { data: month } = useDashboardMonth()
 
@@ -25,17 +26,18 @@ export default function DashboardPage() {
   const showProgress = hasModule('progress')
   const { data: progressList = [] } = useProjectProgress()
   const progressOf = (id: string) => progressList.find(r => r.project_id === id)
+  // 只列 3 天以上沒回報（或從沒回報）的，全部都有在回報就不顯示
   const staleProjects = activeProjects
     .map(p => ({ p, days: daysSince(progressOf(p.id)?.last_report_at ?? null) }))
+    .filter(({ days }) => days === null || days >= 3)
     .sort((a, b) => (b.days ?? Infinity) - (a.days ?? Infinity))
     .slice(0, 3)
 
-  // Aggregate finance numbers across all projects
-  const totalQuoted = financeSummary.reduce((s, f) => s + (f.quote_total ?? 0), 0)
-  const totalReceived = financeSummary.reduce((s, f) => s + (f.received_total ?? 0), 0)
-  const totalExpenses = financeSummary.reduce((s, f) => s + (f.expense_total ?? 0), 0)
-  // 應付未付 = 應付總額 − 已付金額
-  const totalPayables = financeSummary.reduce((s, f) => s + ((f.payable_total ?? 0) - (f.paid_total ?? 0)), 0)
+  // 全店累計（含公司支出與沒掛案件的應付；原本只加總各案件，會漏掉公司支出）
+  const totalQuoted = Number(totals?.quoted ?? 0)
+  const totalReceived = Number(totals?.received ?? 0)
+  const totalExpenses = Number(totals?.expense ?? 0)
+  const totalPayables = Number(totals?.payable_unpaid ?? 0)
 
   const ongoingProjects = projects.filter(p => p.status !== '取消' && p.status !== '結案')
 

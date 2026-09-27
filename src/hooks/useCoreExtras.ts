@@ -85,6 +85,21 @@ export function useDashboardMonth() {
   })
 }
 
+export interface DashboardTotals { quoted: number; received: number; expense: number; payable_unpaid: number }
+
+/** 總覽累計數字：全店（含公司支出、沒掛案件的應付） */
+export function useDashboardTotals() {
+  return useQuery({
+    queryKey: ['dashboard-totals'],
+    queryFn: async () => {
+      const { data, error } = await db.rpc('rpc_dashboard_totals')
+      if (error) throw error
+      return data as DashboardTotals
+    },
+    staleTime: 0,
+  })
+}
+
 // ── 單據照片（LINE 拍照記帳）──
 
 /** Short-lived link to a receipt photo in this 店鋪's own folder */

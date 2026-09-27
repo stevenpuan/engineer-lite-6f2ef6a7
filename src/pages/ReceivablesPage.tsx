@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useCanDelete } from '@/hooks/useCanDelete'
-import { useReceivables, useCreateReceivable, useDeleteReceivable, useReceipts, useCreateReceipt, useDeleteReceipt } from '@/hooks/useReceivables'
+import { useReceivables, useCreateReceivable, useUpdateReceivable, useDeleteReceivable, useReceipts, useCreateReceipt, useDeleteReceipt } from '@/hooks/useReceivables'
 import { SettlementDialog } from '@/components/SettlementDialog'
 import { useProjects } from '@/hooks/useProjects'
 import { ProjectSelect } from '@/components/ProjectSelect'
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { Plus, Search, Trash2, HandCoins } from 'lucide-react'
+import { Plus, Search, Trash2, HandCoins, Pencil } from 'lucide-react'
 import { RECEIVABLE_STATUS_LABELS } from '@/types/database'
 import { toast } from 'sonner'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -21,6 +21,8 @@ export default function ReceivablesPage() {
   const { data: receivables = [], isLoading } = useReceivables()
   const { data: projects = [] } = useProjects()
   const createReceivable = useCreateReceivable()
+  const updateReceivable = useUpdateReceivable()
+  const [editingId, setEditingId] = useState<string | null>(null)
   const deleteReceivable = useDeleteReceivable()
 
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -44,18 +46,42 @@ export default function ReceivablesPage() {
     if (!form.label.trim()) { toast.error('請輸入請款期別'); return }
     if (!form.amount) { toast.error('請輸入金額'); return }
     try {
-      await createReceivable.mutateAsync({
-        project_id: form.project_id,
-        label: form.label,
-        amount: Number(form.amount),
-        due_date: form.due_date || undefined,
-      })
-      toast.success('應收帳款已建立')
+      if (editingId) {
+        await updateReceivable.mutateAsync({
+          id: editingId,
+          project_id: form.project_id,
+          label: form.label,
+          amount: Number(form.amount),
+          due_date: form.due_date || null,
+        } as never)
+        toast.success('已更新')
+      } else {
+        await createReceivable.mutateAsync({
+          project_id: form.project_id,
+          label: form.label,
+          amount: Number(form.amount),
+          due_date: form.due_date || undefined,
+        })
+        toast.success('應收帳款已建立')
+      }
       setDialogOpen(false)
+      setEditingId(null)
       setForm({ project_id: '', label: '', amount: '', due_date: '' })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '建立失敗')
     }
+  }
+
+  function openCreate() {
+    setEditingId(null)
+    setForm({ project_id: '', label: '', amount: '', due_date: '' })
+    setDialogOpen(true)
+  }
+
+  function openEdit(r: (typeof receivables)[number]) {
+    setEditingId(r.id)
+    setForm({ project_id: r.project_id ?? '', label: r.label, amount: String(r.amount), due_date: r.due_date ?? '' })
+    setDialogOpen(true)
   }
 
   async function handleDelete(id: string) {
@@ -73,7 +99,7 @@ export default function ReceivablesPage() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">應收帳款</h1>
-        <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" />新增應收</Button>
+        <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />新增應收</Button>
       </div>
 
       <div className="relative max-w-sm">
@@ -91,7 +117,7 @@ export default function ReceivablesPage() {
             {filtered.map(r => (
               <div key={r.id} className="p-4 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">{r.label}</span>
+                  <span className="font-medium">{r.label}{r.due_date ? <span className="ml-2 text-xs font-normal text-muted-foreground">{r.due_date} 到期</span> : null}</span>
                   <StatusBadge status={RECEIVABLE_STATUS_LABELS[r.status]} />
                 </div>
                 <div className="text-sm text-muted-foreground">
@@ -103,6 +129,7 @@ export default function ReceivablesPage() {
                       <HandCoins className="mr-1 h-4 w-4" />登記收款
                     </Button>
                   )}
+                  <Button variant="ghost" size="icon" aria-label="編輯應收" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
                   {canDelete && (
                     <ConfirmDialog
                       title="刪除應收帳款"
@@ -144,6 +171,7 @@ export default function ReceivablesPage() {
                           <HandCoins className="mr-1 h-4 w-4" />登記收款
                         </Button>
                       )}
+                      <Button variant="ghost" size="icon" aria-label="編輯應收" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
                       {canDelete && (
                         <ConfirmDialog
                           title="刪除應收帳款"
@@ -168,8 +196,8 @@ export default function ReceivablesPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增應收帳款</DialogTitle>
-            <DialogDescription>建立收款期別</DialogDescription>
+            <DialogTitle>{editingId ? '編輯應收帳款' : '新增應收帳款'}</DialogTitle>
+            <DialogDescription>{editingId ? '改金額或到期日，收款狀態會自動重算' : '建立收款期別'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
@@ -183,7 +211,7 @@ export default function ReceivablesPage() {
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>取消</Button>
-              <Button onClick={handleCreate}>建立</Button>
+              <Button onClick={handleCreate}>{editingId ? '儲存' : '建立'}</Button>
             </div>
           </div>
         </DialogContent>
