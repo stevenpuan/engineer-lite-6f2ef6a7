@@ -31,7 +31,7 @@ const HELP =
   '・回報進度\n・我的案子\n・拍照記帳（或直接傳收據照片）\n・收款狀況\n・付款提醒'
 const BIND_HELP =
   '這個 LINE 還沒綁定工程系統帳號。\n\n' +
-  '請到網頁版「LINE 綁定」頁取得 6 位數綁定碼，再把綁定碼傳到這裡。'
+  '請到網頁版「LINE 綁定」頁取得綁定碼，或請老闆從系統發送邀請，再把綁定碼傳到這裡。'
 
 // ── LINE API ──
 
@@ -393,14 +393,15 @@ async function handle(ev: any) {
     return reply(token, [text(ctx ? `歡迎回來，${ctx.tenant_name}。\n\n${HELP}` : `歡迎使用工程 LINE 助手。\n\n${BIND_HELP}`)])
   }
 
-  // Binding code works whether or not already bound (re-bind)
+  // 綁定碼：自己在網頁產生的 6 位數字，或老闆／平台代發的 8 碼邀請碼。
+  // 已綁定的人要改綁必須加「綁定」前綴，避免把 6 位數金額（例如 150000）誤當成綁定碼。
   if (ev.type === 'message' && ev.message.type === 'text') {
-    const m = String(ev.message.text).trim().match(/^(?:綁定\s*)?(\d{6})$/)
-    if (m) {
+    const m = String(ev.message.text).trim().match(/^(綁定\s*)?(\d{6}|[A-Za-z2-9]{8})$/)
+    if (m && (!ctx || m[1])) {
       const r = await rpc<{ ok: boolean; reason?: string; tenant_name?: string; display_name?: string }>('line_bind', {
-        _line_user_id: uid, _code: m[1], _display_name: await lineDisplayName(uid),
+        _line_user_id: uid, _code: m[2].toUpperCase(), _display_name: await lineDisplayName(uid),
       })
-      if (!r.ok) return reply(token, [text(r.reason === 'module_off' ? '這個店鋪沒有開啟 LINE 助手。' : '綁定碼錯誤或已過期（15 分鐘有效），請到網頁重新產生。')])
+      if (!r.ok) return reply(token, [text(r.reason === 'module_off' ? '這個店鋪沒有開啟 LINE 助手。' : '綁定碼錯誤或已過期。請到網頁「LINE 綁定」重新產生，或請老闆重新發送邀請。')])
       return reply(token, [text(`綁定成功 ✓\n${r.tenant_name}／${r.display_name ?? ''}\n\n${HELP}`)])
     }
   }

@@ -62,7 +62,9 @@ export function useAdminTenantUsers(tenantId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('pa_tenant_users', { _tenant_id: tenantId! })
       if (error) throw error
-      return data as unknown as TenantUser[]
+      // RPC 回傳欄位是 user_id；畫面與角色／啟用切換都用 id
+      return ((data ?? []) as unknown as (Omit<TenantUser, 'id'> & { user_id: string })[])
+        .map(({ user_id, ...u }) => ({ ...u, id: user_id }))
     },
   })
 }

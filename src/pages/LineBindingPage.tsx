@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useLineBinding, useNewBindCode, useUnbindLine } from '@/hooks/useLine'
-import { LINE_ADD_FRIEND_URL, LINE_OA_BASIC_ID, LINE_MENU_KEYWORDS } from '@/lib/line'
+import { useLineMembers } from '@/hooks/useLine'
+import { useCanDelete } from '@/hooks/useCanDelete'
+import { LINE_ADD_FRIEND_URL, LINE_OA_BASIC_ID, LINE_MENU_KEYWORDS, formatExpiry } from '@/lib/line'
+import { LineMemberStatus } from '@/components/LineMemberInvite'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,7 +15,40 @@ function secondsLeft(iso: string | null) {
   return Math.max(0, Math.floor((new Date(iso).getTime() - Date.now()) / 1000))
 }
 
+/** 老闆：店內成員的 LINE 綁定，可以替成員發邀請，成員不用登入網頁 */
+function MembersCard() {
+  const { data: members = [], isLoading } = useLineMembers({ kind: 'tenant' })
+  const bound = members.filter(m => m.is_active && m.bound_at).length
+  const active = members.filter(m => m.is_active).length
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">店內成員的 LINE（{bound}／{active} 已綁定）</CardTitle>
+        <p className="text-sm text-muted-foreground">按「邀請綁定」產生邀請，用 LINE 傳給成員；成員加好友、送出綁定碼就完成，不用登入網頁。</p>
+      </CardHeader>
+      <CardContent className="p-0">
+        {isLoading ? (
+          <div className="p-6 text-center text-sm text-muted-foreground">載入中...</div>
+        ) : (
+          <ul className="divide-y">
+            {members.map(m => (
+              <li key={m.user_id} className="flex flex-col gap-2 px-6 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{m.display_name ?? m.email}</div>
+                  <div className="text-xs text-muted-foreground">{m.role === 'owner' ? '老闆' : '助理'}{m.email ? `・${m.email}` : ''}</div>
+                </div>
+                <LineMemberStatus member={m} scope={{ kind: 'tenant' }} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function LineBindingPage() {
+  const isOwner = useCanDelete()
   const [waiting, setWaiting] = useState(false)
   const { data: binding, isLoading } = useLineBinding(waiting)
   const newCode = useNewBindCode()
@@ -86,9 +122,11 @@ export default function LineBindingPage() {
 
           {code ? (
             <div className="rounded-lg border bg-muted/40 p-4 text-center space-y-2">
-              <div className="text-sm text-muted-foreground">綁定碼（{Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')} 內有效）</div>
-              <div className="text-4xl font-bold tracking-[0.3em]">{code}</div>
-              <div className="text-sm text-muted-foreground">把這 6 個數字傳給 LINE 官方帳號，綁定完成這裡會自動更新。</div>
+              <div className="text-sm text-muted-foreground">
+                綁定碼（{left > 3600 ? `${formatExpiry(binding!.code_expires_at!)} 前` : `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')} 內`}有效）
+              </div>
+              <div className="text-4xl font-bold tracking-[0.3em] font-mono">{code}</div>
+              <div className="text-sm text-muted-foreground">把這組綁定碼傳給 LINE 官方帳號，綁定完成這裡會自動更新。</div>
             </div>
           ) : (
             <Button onClick={handleNewCode} disabled={newCode.isPending}>
@@ -97,6 +135,8 @@ export default function LineBindingPage() {
           )}
         </CardContent>
       </Card>
+
+      {isOwner && <MembersCard />}
 
       <Card>
         <CardHeader><CardTitle className="text-base">怎麼綁定</CardTitle></CardHeader>
@@ -111,8 +151,9 @@ export default function LineBindingPage() {
               )}
             </li>
             <li>在上方按「產生綁定碼」</li>
-            <li>把 6 位數綁定碼傳給官方帳號</li>
+            <li>把綁定碼傳給官方帳號</li>
           </ol>
+          <p className="text-muted-foreground">店內成員也可以由老闆在下方「店內成員的 LINE」發邀請，成員不用登入網頁。</p>
           <div className="pt-2">
             <div className="font-medium mb-1">LINE 裡可以用的指令</div>
             <div className="flex flex-wrap gap-1.5">

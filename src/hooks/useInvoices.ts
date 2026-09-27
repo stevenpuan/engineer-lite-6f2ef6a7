@@ -156,7 +156,7 @@ export function downloadInvoicesCsv(rows: TaxInvoice[], filename: string) {
   const lines = rows.map(r => [
     r.direction === 'out' ? '銷項' : '進項', r.invoice_no, r.invoice_date, r.counterparty_name, r.counterparty_tax_id, r.buyer_tax_id,
     r.tax_type, r.sales_amount, r.tax_amount, r.total_amount,
-    r.direction === 'in' ? (r.deductible ? '是' : '否') : '', r.deduct_note ?? r.notes, r.status === 'void' ? '作廢' : '有效', r.project?.name,
+    r.direction === 'in' ? (r.deductible ? '是' : '否') : '', (r.direction === 'in' && !r.deductible ? r.deduct_note : null) ?? r.notes, r.status === 'void' ? '作廢' : '有效', r.project?.name,
   ].map(esc).join(','))
   const blob = new Blob(['﻿' + [head.join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8' })
   const a = document.createElement('a')

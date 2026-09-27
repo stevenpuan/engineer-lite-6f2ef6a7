@@ -211,7 +211,7 @@ function InvoiceTab({ direction, period, setPeriod, year, myTaxId }: {
                       {direction === 'in' && r.status === 'valid' && (
                         <label className="mt-1 flex items-center gap-2 text-xs">
                           <Switch checked={!!r.deductible}
-                            onCheckedChange={v => act(() => update.mutateAsync({ id: r.id, deductible: v, deduct_note: v ? null : (r.deduct_note ?? '手動設為不可扣抵') }), v ? '已設為可扣抵' : '已設為不可扣抵')} />
+                            onCheckedChange={v => act(() => update.mutateAsync(v ? { id: r.id, deductible: true } : { id: r.id, deductible: false, deduct_note: r.deduct_note ?? '手動設為不可扣抵' }), v ? '已設為可扣抵' : '已設為不可扣抵')} />
                           <span className={r.deductible ? 'text-green-700' : 'text-muted-foreground'}>
                             {r.deductible ? '可扣抵' : `不可扣抵${r.deduct_note ? `：${r.deduct_note}` : ''}`}
                           </span>

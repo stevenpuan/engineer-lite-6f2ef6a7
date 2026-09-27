@@ -9,6 +9,8 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Select } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { UserPlus } from 'lucide-react'
+import { useLineMembers, useIssueLineCode, type LineInvite, type LineScope } from '@/hooks/useLine'
+import { LineMemberStatus, LineInviteDialog } from '@/components/LineMemberInvite'
 import { toast } from 'sonner'
 
 export default function UsersPage() {
@@ -18,6 +20,11 @@ export default function UsersPage() {
   const createUser = useCreateUser()
   const updateRole = useUpdateUserRole()
   const toggleActive = useToggleUserActive()
+  const lineScope: LineScope | null = selectedTenant ? { kind: 'platform', tenantId: selectedTenant } : null
+  const { data: lineMembers = [] } = useLineMembers(lineScope)
+  const lineByUser = new Map(lineMembers.map(m => [m.user_id, m]))
+  const issueCode = useIssueLineCode(lineScope ?? { kind: 'platform', tenantId: '' })
+  const [newInvite, setNewInvite] = useState<{ invite: LineInvite; name: string } | null>(null)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState({ email: '', password: '', display_name: '', role: 'assistant' })
@@ -26,7 +33,7 @@ export default function UsersPage() {
     if (!selectedTenant) { toast.error('請先選擇租戶'); return }
     if (!form.email || !form.password) { toast.error('請填寫 Email 和密碼'); return }
     try {
-      await createUser.mutateAsync({
+      const uid = await createUser.mutateAsync({
         _tenant_id: selectedTenant,
         _email: form.email,
         _password: form.password,
@@ -35,7 +42,17 @@ export default function UsersPage() {
       })
       toast.success('使用者已建立')
       setDialogOpen(false)
+      const name = form.display_name || form.email
       setForm({ email: '', password: '', display_name: '', role: 'assistant' })
+      // 建好帳號順便產生 LINE 綁定邀請（這家店沒開 LINE 助手就略過）
+      if (typeof uid === 'string') {
+        try {
+          const invite = await issueCode.mutateAsync(uid)
+          setNewInvite({ invite, name })
+        } catch {
+          /* 未開 LINE 助手 */
+        }
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '建立失敗')
     }
@@ -96,6 +113,7 @@ export default function UsersPage() {
                     <TableHead>名稱</TableHead>
                     <TableHead>角色</TableHead>
                     <TableHead>啟用</TableHead>
+                    <TableHead>LINE</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -119,10 +137,15 @@ export default function UsersPage() {
                           onCheckedChange={checked => handleToggleActive(u.id, checked)}
                         />
                       </TableCell>
+                      <TableCell>
+                        {lineScope && lineByUser.get(u.id)
+                          ? <LineMemberStatus member={lineByUser.get(u.id)!} scope={lineScope} />
+                          : <span className="text-xs text-muted-foreground">—</span>}
+                      </TableCell>
                     </TableRow>
                   ))}
                   {users.length === 0 && (
-                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">此租戶尚無使用者</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">此租戶尚無使用者</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -130,6 +153,13 @@ export default function UsersPage() {
           </CardContent>
         </Card>
       )}
+
+      <LineInviteDialog
+        invite={newInvite?.invite ?? null}
+        name={newInvite?.name}
+        open={!!newInvite}
+        onOpenChange={o => { if (!o) setNewInvite(null) }}
+      />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
