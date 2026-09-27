@@ -87,7 +87,7 @@ export default function QuotesPage() {
             {filtered.map(q => (
               <div key={q.id} className="p-4 space-y-1">
                 <div className="flex items-center justify-between">
-                  <Link to={`/quotes/${q.id}`} className="font-medium hover:underline">{q.title}</Link>
+                  <Link to="/quotes/$id" params={{ id: q.id }} className="font-medium hover:underline">{q.title}</Link>
                   <Badge className={statusStyle[q.status]} variant="secondary">{q.status}</Badge>
                 </div>
                 <div className="text-sm text-muted-foreground">
@@ -115,14 +115,14 @@ export default function QuotesPage() {
                   <TableRow key={q.id}>
                     <TableCell className="text-muted-foreground">{q.quote_no ?? '—'}</TableCell>
                     <TableCell className="font-medium">
-                      <Link to={`/quotes/${q.id}`} className="hover:underline">{q.title}</Link>
+                      <Link to="/quotes/$id" params={{ id: q.id }} className="hover:underline">{q.title}</Link>
                     </TableCell>
                     <TableCell>{(q.project as { name: string } | null)?.name ?? '—'}</TableCell>
                     <TableCell className="text-right">${q.total.toLocaleString()}</TableCell>
                     <TableCell><Badge className={statusStyle[q.status]} variant="secondary">{q.status}</Badge></TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Link to={`/quotes/${q.id}`}><Button variant="ghost" size="icon"><ExternalLink className="h-4 w-4" /></Button></Link>
+                        <Link to="/quotes/$id" params={{ id: q.id }}><Button variant="ghost" size="icon"><ExternalLink className="h-4 w-4" /></Button></Link>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete(q.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </TableCell>

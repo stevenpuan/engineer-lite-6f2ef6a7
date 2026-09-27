@@ -173,7 +173,7 @@ export default function ProjectDetailPage() {
                     <TableCell className="text-right">${q.total.toLocaleString()}</TableCell>
                     <TableCell><Badge className={quoteStatusStyle[q.status] ?? ''} variant="secondary">{q.status}</Badge></TableCell>
                     <TableCell>
-                      <Link to={`/quotes/${q.id}`}><Button variant="ghost" size="icon"><ExternalLink className="h-4 w-4" /></Button></Link>
+                      <Link to="/quotes/$id" params={{ id: q.id }}><Button variant="ghost" size="icon"><ExternalLink className="h-4 w-4" /></Button></Link>
                     </TableCell>
                   </TableRow>
                 ))}
