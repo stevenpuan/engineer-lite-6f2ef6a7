@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, FolderKanban, ArrowRight, TrendingUp, TrendingDown, Wallet } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import { Badge } from '@/components/ui/badge'
+import { useModules } from '@/contexts/ModuleContext'
+import { useProjectProgress, daysSince } from '@/hooks/useProgress'
+import { ProgressBar } from '@/components/ProjectProgressTab'
 
 const statusColor: Record<string, string> = {
   '洽談中': 'bg-yellow-100 text-yellow-800',
@@ -20,6 +23,16 @@ export default function DashboardPage() {
   const { data: financeSummary = [] } = useFinanceSummary()
 
   const activeProjects = projects.filter(p => p.status === '進行中')
+
+  // 進度：最久沒回報的進行中案件（從沒回報的排最前面）
+  const { hasModule } = useModules()
+  const showProgress = hasModule('progress')
+  const { data: progressList = [] } = useProjectProgress()
+  const progressOf = (id: string) => progressList.find(r => r.project_id === id)
+  const staleProjects = activeProjects
+    .map(p => ({ p, days: daysSince(progressOf(p.id)?.last_report_at ?? null) }))
+    .sort((a, b) => (b.days ?? Infinity) - (a.days ?? Infinity))
+    .slice(0, 3)
 
   // Aggregate finance numbers across all projects
   const totalQuoted = financeSummary.reduce((s, f) => s + (f.quote_total ?? 0), 0)
@@ -106,6 +119,36 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {showProgress && staleProjects.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">該追進度了</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {staleProjects.map(({ p, days }) => (
+                <Link
+                  key={p.id}
+                  to="/projects/$id" params={{ id: p.id }}
+                  className="flex items-center justify-between gap-3 rounded-lg border p-3 hover:bg-accent/50 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{p.name}</div>
+                    <div className={days === null || days >= 3 ? 'text-sm text-orange-600' : 'text-sm text-muted-foreground'}>
+                      {days === null ? '尚未回報過' : days === 0 ? '今天有回報' : `${days} 天沒回報`}
+                    </div>
+                  </div>
+                  <div className="flex w-28 shrink-0 items-center gap-2">
+                    <ProgressBar value={progressOf(p.id)?.overall_percent ?? 0} />
+                    <span className="w-9 text-right text-xs text-muted-foreground">{progressOf(p.id)?.overall_percent ?? 0}%</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {activeProjects.length > 0 && (
         <Card>

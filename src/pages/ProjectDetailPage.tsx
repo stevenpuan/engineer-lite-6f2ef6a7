@@ -15,6 +15,8 @@ import { cn } from '@/lib/utils'
 import type { ProjectStatus } from '@/types/database'
 import { RECEIVABLE_STATUS_LABELS, PAYABLE_STATUS_LABELS, EXPENSE_CATEGORY_LABELS } from '@/types/database'
 import { toast } from 'sonner'
+import { useModules } from '@/contexts/ModuleContext'
+import { ProjectProgressTab } from '@/components/ProjectProgressTab'
 
 const statusColor: Record<string, string> = {
   '洽談中': 'bg-yellow-100 text-yellow-800',
@@ -60,10 +62,11 @@ const expenseStatusLabel: Record<string, string> = {
   unpaid: '未付', paid: '已付', partial: '部分', cancelled: '取消',
 }
 
-type Tab = 'info' | 'quotes' | 'receivables' | 'expenses' | 'payables'
+type Tab = 'info' | 'progress' | 'quotes' | 'receivables' | 'expenses' | 'payables'
 
 export default function ProjectDetailPage() {
   const { id } = useParams({ strict: false }) as { id: string }
+  const { hasModule } = useModules()
   const { data: project, isLoading } = useProject(id)
   const updateProject = useUpdateProject()
   const [tab, setTab] = useState<Tab>('info')
@@ -88,10 +91,13 @@ export default function ProjectDetailPage() {
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: 'info', label: '基本資料' },
-    { key: 'quotes', label: '報價單', count: quotes.length },
-    { key: 'receivables', label: '收款', count: receivables.length },
-    { key: 'expenses', label: '支出', count: expenses.length },
-    { key: 'payables', label: '應付', count: payables.length },
+    ...(hasModule('progress') ? [{ key: 'progress' as Tab, label: '進度' }] : []),
+    ...(hasModule('quote') ? [{ key: 'quotes' as Tab, label: '報價單', count: quotes.length }] : []),
+    ...(hasModule('receivable') ? [{ key: 'receivables' as Tab, label: '收款', count: receivables.length }] : []),
+    ...(hasModule('payable') ? [
+      { key: 'expenses' as Tab, label: '支出', count: expenses.length },
+      { key: 'payables' as Tab, label: '應付', count: payables.length },
+    ] : []),
   ]
 
   return (
@@ -151,6 +157,8 @@ export default function ProjectDetailPage() {
       )}
 
       {/* Tab: Quotes */}
+      {tab === 'progress' && id && <ProjectProgressTab projectId={id} />}
+
       {tab === 'quotes' && (
         <Card>
           <CardHeader><CardTitle className="text-base">報價單 ({quotes.length})</CardTitle></CardHeader>

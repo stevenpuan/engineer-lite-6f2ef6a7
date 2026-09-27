@@ -15,6 +15,7 @@ import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PayablesRouteImport } from './routes/payables'
 import { Route as ReceivablesRouteImport } from './routes/receivables'
+import { Route as StageTemplatesRouteImport } from './routes/stage-templates'
 import { Route as AdminModulesRouteImport } from './routes/admin.modules'
 import { Route as AdminTenantsRouteImport } from './routes/admin.tenants'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
@@ -51,6 +52,11 @@ const PayablesRoute = PayablesRouteImport.update({
 const ReceivablesRoute = ReceivablesRouteImport.update({
   id: '/receivables',
   path: '/receivables',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StageTemplatesRoute = StageTemplatesRouteImport.update({
+  id: '/stage-templates',
+  path: '/stage-templates',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminModulesRoute = AdminModulesRouteImport.update({
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/payables': typeof PayablesRoute
   '/receivables': typeof ReceivablesRoute
+  '/stage-templates': typeof StageTemplatesRoute
   '/admin/modules': typeof AdminModulesRoute
   '/admin/tenants': typeof AdminTenantsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/payables': typeof PayablesRoute
   '/receivables': typeof ReceivablesRoute
+  '/stage-templates': typeof StageTemplatesRoute
   '/admin/modules': typeof AdminModulesRoute
   '/admin/tenants': typeof AdminTenantsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/payables': typeof PayablesRoute
   '/receivables': typeof ReceivablesRoute
+  '/stage-templates': typeof StageTemplatesRoute
   '/admin/modules': typeof AdminModulesRoute
   '/admin/tenants': typeof AdminTenantsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/payables'
     | '/receivables'
+    | '/stage-templates'
     | '/admin/modules'
     | '/admin/tenants'
     | '/admin/users'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/payables'
     | '/receivables'
+    | '/stage-templates'
     | '/admin/modules'
     | '/admin/tenants'
     | '/admin/users'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/payables'
     | '/receivables'
+    | '/stage-templates'
     | '/admin/modules'
     | '/admin/tenants'
     | '/admin/users'
@@ -190,6 +202,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PayablesRoute: typeof PayablesRoute
   ReceivablesRoute: typeof ReceivablesRoute
+  StageTemplatesRoute: typeof StageTemplatesRoute
   AdminModulesRoute: typeof AdminModulesRoute
   AdminTenantsRoute: typeof AdminTenantsRoute
   AdminUsersRoute: typeof AdminUsersRoute
@@ -241,6 +254,13 @@ declare module '@tanstack/react-router' {
       path: '/receivables'
       fullPath: '/receivables'
       preLoaderRoute: typeof ReceivablesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stage-templates': {
+      id: '/stage-templates'
+      path: '/stage-templates'
+      fullPath: '/stage-templates'
+      preLoaderRoute: typeof StageTemplatesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/modules': {
@@ -302,6 +322,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PayablesRoute: PayablesRoute,
   ReceivablesRoute: ReceivablesRoute,
+  StageTemplatesRoute: StageTemplatesRoute,
   AdminModulesRoute: AdminModulesRoute,
   AdminTenantsRoute: AdminTenantsRoute,
   AdminUsersRoute: AdminUsersRoute,

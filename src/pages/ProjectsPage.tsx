@@ -13,6 +13,9 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Plus, Trash2, Search, ExternalLink } from 'lucide-react'
 import type { ProjectStatus } from '@/types/database'
 import { toast } from 'sonner'
+import { useModules } from '@/contexts/ModuleContext'
+import { useProjectProgress } from '@/hooks/useProgress'
+import { ProgressBar } from '@/components/ProjectProgressTab'
 
 const statusColor: Record<string, string> = {
   '洽談中': 'bg-yellow-100 text-yellow-800',
@@ -26,6 +29,13 @@ const allStatuses: ProjectStatus[] = ['洽談中', '進行中', '完工', '結�
 
 export default function ProjectsPage() {
   const { data: projects = [], isLoading } = useProjects()
+  const { hasModule } = useModules()
+  const showProgress = hasModule('progress')
+  const { data: progressList = [] } = useProjectProgress()
+  const progressOf = (id: string) => {
+    const x = progressList.find(r => r.project_id === id)
+    return x && x.stage_count > 0 ? x : undefined
+  }
   const { data: clients = [] } = useClients()
   const createProject = useCreateProject()
   const deleteProject = useDeleteProject()
@@ -105,6 +115,12 @@ export default function ProjectsPage() {
                   {(p.client as { name: string } | null)?.name ?? '—'}
                 </div>
                 {p.contract_amount != null && <div className="text-sm text-muted-foreground">合約金額：${p.contract_amount.toLocaleString()}</div>}
+                {showProgress && progressOf(p.id) && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <ProgressBar value={progressOf(p.id)!.overall_percent} />
+                    <span className="w-10 text-right text-xs text-muted-foreground">{progressOf(p.id)!.overall_percent}%</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -117,6 +133,7 @@ export default function ProjectsPage() {
                   <TableHead>案件名稱</TableHead>
                   <TableHead>客戶</TableHead>
                   <TableHead>狀態</TableHead>
+                  {showProgress && <TableHead className="w-40">進度</TableHead>}
                   <TableHead>合約金額</TableHead>
                   <TableHead className="w-24">操作</TableHead>
                 </TableRow>
@@ -131,6 +148,16 @@ export default function ProjectsPage() {
                     </TableCell>
                     <TableCell>{(p.client as { name: string } | null)?.name ?? '—'}</TableCell>
                     <TableCell><Badge className={statusColor[p.status] ?? ''} variant="secondary">{p.status}</Badge></TableCell>
+                    {showProgress && (
+                      <TableCell>
+                        {progressOf(p.id) ? (
+                          <div className="flex items-center gap-2">
+                            <ProgressBar value={progressOf(p.id)!.overall_percent} />
+                            <span className="w-10 text-right text-xs text-muted-foreground">{progressOf(p.id)!.overall_percent}%</span>
+                          </div>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                    )}
                     <TableCell>{p.contract_amount != null ? `$${p.contract_amount.toLocaleString()}` : '—'}</TableCell>
                     <TableCell>
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}>
@@ -140,7 +167,7 @@ export default function ProjectsPage() {
                   </TableRow>
                 ))}
                 {filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">無案件資料</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={showProgress ? 6 : 5} className="text-center text-muted-foreground py-8">無案件資料</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>

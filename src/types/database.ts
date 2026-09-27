@@ -258,3 +258,49 @@ export const PAYABLE_STATUS_LABELS: Record<PayableStatus, string> = {
   paid: '已付',
   cancelled: '取消',
 }
+
+// ── B3: Progress (module:progress) ──
+
+export interface StageTemplate {
+  id: string
+  tenant_id: string
+  name: string
+  stages: string[]
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ProjectStage {
+  id: string
+  tenant_id: string
+  project_id: string
+  name: string
+  sort_order: number
+  due_date: string | null
+  percent: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ProgressLog {
+  id: string
+  tenant_id: string
+  project_id: string
+  stage_id: string
+  log_date: string
+  percent: number
+  note: string | null
+  source: 'web' | 'line'
+  reported_by: string | null
+  created_at: string
+  stage?: { name: string } | null
+}
+
+export interface ProjectProgress {
+  project_id: string
+  tenant_id: string
+  stage_count: number
+  overall_percent: number
+  last_report_at: string | null
+}
