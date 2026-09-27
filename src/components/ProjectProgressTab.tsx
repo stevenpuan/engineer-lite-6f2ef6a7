@@ -216,7 +216,7 @@ export function ProjectProgressTab({ projectId }: { projectId: string }) {
                   <div className="min-w-0">
                     <div>
                       <span className="font-medium">{l.stage?.name ?? '（已刪除階段）'}</span> → {l.percent}%
-                      {l.source === 'line' && <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800">LINE</Badge>}
+                      {l.source === 'line' && <Badge variant="secondary" className="ml-2 bg-status-done text-status-done-foreground">LINE</Badge>}
                     </div>
                     {l.note && <div className="text-muted-foreground break-words">{l.note}</div>}
                   </div>

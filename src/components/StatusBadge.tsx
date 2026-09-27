@@ -13,6 +13,8 @@ const statusStyles: Record<string, string> = {
   '結案': 'bg-status-closed text-status-closed-foreground',
   '取消': 'bg-status-cancelled text-status-cancelled-foreground',
   // 帳款狀態
+  '待請款': 'bg-status-closed text-status-closed-foreground',
+  '已開票': 'bg-status-active text-status-active-foreground',
   '待收': 'bg-status-pending text-status-pending-foreground',
   '已請款': 'bg-status-active text-status-active-foreground',
   '部分收款': 'bg-status-pending text-status-pending-foreground',
