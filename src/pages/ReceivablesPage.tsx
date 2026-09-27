@@ -81,7 +81,7 @@ export default function ReceivablesPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">收款管理</h1>
+        <h1 className="text-2xl font-bold">應收帳款</h1>
         <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" />新增應收</Button>
       </div>
 

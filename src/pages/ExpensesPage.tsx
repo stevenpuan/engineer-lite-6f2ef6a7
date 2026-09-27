@@ -102,7 +102,7 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">支出管理</h1>
+        <h1 className="text-2xl font-bold">雜支支出</h1>
         <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" />新增支出</Button>
       </div>
 
