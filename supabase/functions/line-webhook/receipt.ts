@@ -19,6 +19,9 @@ export type Receipt = {
   summary: string | null
   category: string | null
   random_code?: string | null
+  /** 電子發票 QR 的買方統編（有才可能扣抵進項）與未稅銷售額 */
+  buyer_tax_id?: string | null
+  sales_amount?: number | null
 }
 
 const CATEGORY_CODES = ['material', 'labor', 'machinery', 'fuel', 'meal', 'transport', 'sundry', 'other']
@@ -29,16 +32,22 @@ const CATEGORY_CODES = ['material', 'labor', 'machinery', 'fuel', 'meal', 'trans
 export function parseEinvoiceQr(raw: string): Omit<Receipt, 'source' | 'vendor' | 'summary' | 'category'> | null {
   const m = raw.match(/^([A-Z]{2}\d{8})(\d{3})(\d{2})(\d{2})(\d{4})([0-9A-Fa-f]{8})([0-9A-Fa-f]{8})(\d{8})(\d{8})/)
   if (!m) return null
-  const [, no, y, mo, d, rnd, , totalHex, , seller] = m
+  const [, no, y, mo, d, rnd, salesHex, totalHex, buyer, seller] = m
   const year = Number(y) + 1911
   const date = `${year}-${mo}-${d}`
   if (Number.isNaN(Date.parse(date))) return null
+  const total = parseInt(totalHex, 16)
+  const sales = parseInt(salesHex, 16)
+  const hasBuyer = buyer !== '00000000'
   return {
-    amount: parseInt(totalHex, 16),
+    amount: total,
     date,
     receipt_no: no,
     seller_tax_id: seller === '00000000' ? null : seller,
     random_code: rnd,
+    buyer_tax_id: hasBuyer ? buyer : null,
+    // 有買方統編（三聯式／B2B）時 QR 的銷售額是未稅金額；B2C 不分開列，交給資料庫以 /1.05 估算
+    sales_amount: hasBuyer && sales > 0 && sales <= total ? sales : null,
   }
 }
 
@@ -139,6 +148,8 @@ export async function recognizeReceipt(bytes: Uint8Array, type: string): Promise
     receipt_no: qr?.receipt_no ?? a?.receipt_no ?? null,
     seller_tax_id: qr?.seller_tax_id ?? a?.seller_tax_id ?? null,
     random_code: qr?.random_code ?? null,
+    buyer_tax_id: qr?.buyer_tax_id ?? null,
+    sales_amount: qr?.sales_amount ?? null,
     vendor: a?.vendor ?? null,
     summary: a?.summary ?? null,
     category: a?.category ?? null,

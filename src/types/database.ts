@@ -349,3 +349,60 @@ export interface DashboardMonth {
   /** 進行中＋完工案件總數（margins 只列毛利率最低的 20 件） */
   margins_total?: number
 }
+
+// ── 發票與稅務（module:invoice）──
+
+export type InvoiceDirection = 'out' | 'in'
+export type InvoiceTaxType = 'taxable' | 'zero' | 'exempt'
+
+export const TAX_TYPE_LABELS: Record<InvoiceTaxType, string> = {
+  taxable: '應稅 5%',
+  zero: '零稅率',
+  exempt: '免稅',
+}
+
+export interface TaxInvoice {
+  id: string
+  tenant_id: string
+  direction: InvoiceDirection
+  invoice_no: string | null
+  invoice_date: string
+  period_key: number
+  counterparty_name: string | null
+  counterparty_tax_id: string | null
+  buyer_tax_id: string | null
+  tax_type: InvoiceTaxType
+  sales_amount: number
+  tax_amount: number
+  total_amount: number
+  deductible: boolean | null
+  deduct_note: string | null
+  status: 'valid' | 'void'
+  source: 'web' | 'line' | 'import'
+  project_id: string | null
+  expense_id: string | null
+  payable_id: string | null
+  receivable_id: string | null
+  photo_path: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  project?: { id: string; name: string } | null
+}
+
+export interface TaxPeriodSummary {
+  period: number
+  label: string
+  out_count: number
+  out_taxable_sales: number
+  out_zero_sales: number
+  out_exempt_sales: number
+  out_tax: number
+  in_count: number
+  in_deductible_sales: number
+  in_deductible_tax: number
+  in_nondeductible_total: number
+  credit_brought: number
+  tax_payable: number
+  credit_carried: number
+}

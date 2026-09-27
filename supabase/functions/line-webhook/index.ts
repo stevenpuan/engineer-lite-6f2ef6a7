@@ -280,7 +280,7 @@ async function askExpenseCategory(uid: string, token: string, data: Record<strin
 
 async function saveExpense(uid: string, token: string, data: Record<string, unknown>, category: string) {
   const description = [data.vendor_name, data.summary].filter(Boolean).join(' ') || (data.photo_path ? 'LINE 拍照記帳' : 'LINE 記帳')
-  await rpc('line_create_expense', {
+  const saved = await rpc<{ id: string; invoice: { deductible: boolean; note: string | null; tax: number } | null }>('line_create_expense', {
     _line_user_id: uid,
     _project_id: data.project_id ?? null,
     _amount: data.amount,
@@ -295,7 +295,11 @@ async function saveExpense(uid: string, token: string, data: Record<string, unkn
   })
   await rpc('line_pending_clear', { _line_user_id: uid })
   const when = data.expense_date ? `（${String(data.expense_date).slice(5).replace('-', '/')}）` : ''
-  await reply(token, [text(`已記帳 ✓\n${description}${when}\n${money(data.amount as number)}　${CATEGORY_LABEL[category] ?? category}　${data.project_name ?? '公司支出'}`, [
+  const inv = saved?.invoice
+  const invLine = inv
+    ? `\n進項發票已登記：${inv.deductible ? `可扣抵，稅額 ${money(inv.tax)}` : `不可扣抵${inv.note ? `（${inv.note}）` : ''}`}`
+    : ''
+  await reply(token, [text(`已記帳 ✓\n${description}${when}\n${money(data.amount as number)}　${CATEGORY_LABEL[category] ?? category}　${data.project_name ?? '公司支出'}${invLine}`, [
     { label: '再記一筆', text: '拍照記帳' },
   ])])
 }
