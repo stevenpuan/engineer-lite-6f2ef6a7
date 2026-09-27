@@ -810,6 +810,7 @@ export type Database = {
           status: string
           subtotal: number
           tax: number
+          tax_rate: number
           tenant_id: string
           title: string
           total: number
@@ -829,6 +830,7 @@ export type Database = {
           status?: string
           subtotal?: number
           tax?: number
+          tax_rate?: number
           tenant_id: string
           title: string
           total?: number
@@ -848,6 +850,7 @@ export type Database = {
           status?: string
           subtotal?: number
           tax?: number
+          tax_rate?: number
           tenant_id?: string
           title?: string
           total?: number
@@ -1540,6 +1543,7 @@ export type Database = {
         Returns: undefined
       }
       purge_line_data: { Args: never; Returns: undefined }
+      recalc_quote_totals: { Args: { _quote_id: string }; Returns: undefined }
       rpc_apply_stage_template: {
         Args: { _project_id: string; _template_id: string }
         Returns: number
