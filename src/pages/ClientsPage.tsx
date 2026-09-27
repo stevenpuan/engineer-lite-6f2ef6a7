@@ -10,6 +10,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Plus, Pencil, Trash2, Search } from 'lucide-react'
 import type { Client } from '@/types/database'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 const emptyForm = { name: '', contact_name: '', phone: '', email: '', address: '', notes: '' }
 
@@ -74,7 +75,6 @@ export default function ClientsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('確定要刪除此客戶？')) return
     try {
       await deleteClient.mutateAsync(id)
       toast.success('客戶已刪除')
@@ -82,6 +82,8 @@ export default function ClientsPage() {
       toast.error(err instanceof Error ? err.message : '刪除失敗')
     }
   }
+
+  const deleteWarning = '這個客戶底下的案件、報價單與款項紀錄會一併刪除，且無法復原。'
 
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">載入中...</div>
 
