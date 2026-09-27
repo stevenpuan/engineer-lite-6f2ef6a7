@@ -6,7 +6,7 @@ import { useModules, type ModuleKey } from '@/contexts/ModuleContext'
 import {
   LayoutDashboard, Users, FolderKanban, LogOut, Menu, X,
   Shield, Building2, UserCog, ToggleLeft,
-  FileText, Wallet, Receipt, CreditCard, ListChecks,
+  FileText, Wallet, Receipt, CreditCard, ListChecks, MessageCircle,
 } from 'lucide-react'
 
 interface NavItem {
@@ -32,6 +32,7 @@ export function Sidebar() {
     { label: '支出管理', to: '/expenses', icon: <Receipt className="h-5 w-5" />, module: 'payable' },
     { label: '應付帳款', to: '/payables', icon: <CreditCard className="h-5 w-5" />, module: 'payable' },
     { label: '階段範本', to: '/stage-templates', icon: <ListChecks className="h-5 w-5" />, module: 'progress' },
+    { label: 'LINE 綁定', to: '/line', icon: <MessageCircle className="h-5 w-5" />, module: 'line' },
   ]
 
   const adminNav: NavItem[] = [

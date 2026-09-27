@@ -1,1 +1,6 @@
 project_id = "bzavntmsfgtsluiheypp"
+[functions.line-webhook]
+verify_jwt = false
+
+[functions.line-daily-push]
+verify_jwt = false
