@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { usePayables, useCreatePayable, useDeletePayable } from '@/hooks/usePayables'
+import { usePayables, useCreatePayable, useDeletePayable, usePayments, useCreatePayment, useDeletePayment } from '@/hooks/usePayables'
+import { SettlementDialog } from '@/components/SettlementDialog'
 import { useProjects } from '@/hooks/useProjects'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
-import { Plus, Search, Trash2 } from 'lucide-react'
+import { Plus, Search, Trash2, Banknote } from 'lucide-react'
 import { PAYABLE_STATUS_LABELS, type PayableStatus } from '@/types/database'
 import { toast } from 'sonner'
 
@@ -29,6 +30,12 @@ export default function PayablesPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState({ project_id: '', vendor_name: '', description: '', amount: '', due_date: '' })
   const [search, setSearch] = useState('')
+  const [settleId, setSettleId] = useState<string | null>(null)
+
+  const settling = payables.find(p => p.id === settleId) ?? null
+  const { data: payments = [] } = usePayments(settleId ?? undefined)
+  const createPayment = useCreatePayment()
+  const deletePayment = useDeletePayment()
 
   const filtered = payables.filter(p =>
     p.vendor_name.includes(search) || (p.description ?? '').includes(search)
@@ -95,6 +102,11 @@ export default function PayablesPage() {
                 <div className="text-sm text-muted-foreground">
                   {(p.project as { name: string } | null)?.name ?? '—'} · ${Number(p.amount).toLocaleString()}
                 </div>
+                {p.status !== 'cancelled' && (
+                  <Button variant="outline" size="sm" className="mt-2" onClick={() => setSettleId(p.id)}>
+                    <Banknote className="mr-1 h-4 w-4" />登記付款
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -110,7 +122,7 @@ export default function PayablesPage() {
                   <TableHead className="text-right">金額</TableHead>
                   <TableHead>到期日</TableHead>
                   <TableHead>狀態</TableHead>
-                  <TableHead className="w-16"></TableHead>
+                  <TableHead className="w-40"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -122,8 +134,13 @@ export default function PayablesPage() {
                     <TableCell className="text-right">${Number(p.amount).toLocaleString()}</TableCell>
                     <TableCell>{p.due_date ?? '—'}</TableCell>
                     <TableCell><Badge className={statusStyle[p.status]} variant="secondary">{PAYABLE_STATUS_LABELS[p.status]}</Badge></TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    <TableCell className="whitespace-nowrap text-right">
+                      {p.status !== 'cancelled' && (
+                        <Button variant="outline" size="sm" onClick={() => setSettleId(p.id)}>
+                          <Banknote className="mr-1 h-4 w-4" />登記付款
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" aria-label="刪除應付" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -163,6 +180,23 @@ export default function PayablesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <SettlementDialog
+        open={!!settling}
+        onOpenChange={open => { if (!open) setSettleId(null) }}
+        kind="payment"
+        subject={settling ? `${settling.vendor_name}${settling.description ? ` · ${settling.description}` : ''}` : ''}
+        totalAmount={Number(settling?.amount ?? 0)}
+        records={payments.map(p => ({ id: p.id, date: p.paid_date, amount: Number(p.amount), method: p.method, reference_no: p.reference_no }))}
+        onCreate={input => createPayment.mutateAsync({
+          payable_id: settleId!,
+          paid_date: input.date,
+          amount: input.amount,
+          method: input.method,
+          reference_no: input.reference_no,
+        })}
+        onDelete={id => deletePayment.mutateAsync(id)}
+      />
     </div>
   )
 }

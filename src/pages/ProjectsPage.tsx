@@ -104,7 +104,7 @@ export default function ProjectsPage() {
                 <div className="text-sm text-muted-foreground">
                   {(p.client as { name: string } | null)?.name ?? '—'}
                 </div>
-                {p.contract_amount != null && <div className="text-sm text-muted-foreground">預算：${p.contract_amount.toLocaleString()}</div>}
+                {p.contract_amount != null && <div className="text-sm text-muted-foreground">合約金額：${p.contract_amount.toLocaleString()}</div>}
               </div>
             ))}
           </div>
@@ -117,7 +117,7 @@ export default function ProjectsPage() {
                   <TableHead>案件名稱</TableHead>
                   <TableHead>客戶</TableHead>
                   <TableHead>狀態</TableHead>
-                  <TableHead>預算</TableHead>
+                  <TableHead>合約金額</TableHead>
                   <TableHead className="w-24">操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -170,7 +170,7 @@ export default function ProjectsPage() {
               </Select>
             </div>
             <div><Label>地址</Label><Input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
-            <div><Label>預算</Label><Input type="number" value={form.contract_amount} onChange={e => setForm({ ...form, contract_amount: e.target.value })} /></div>
+            <div><Label>合約金額</Label><Input type="number" value={form.contract_amount} onChange={e => setForm({ ...form, contract_amount: e.target.value })} /></div>
             <div><Label>備註</Label><Input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>取消</Button>

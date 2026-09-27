@@ -48,7 +48,10 @@ export function useCreateReceivable() {
       if (error) throw error
       return data
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['receivables'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['receivables'] })
+      qc.invalidateQueries({ queryKey: ['finance-summary'] })
+    },
   })
 }
 
@@ -60,7 +63,10 @@ export function useUpdateReceivable() {
       if (error) throw error
       return data
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['receivables'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['receivables'] })
+      qc.invalidateQueries({ queryKey: ['finance-summary'] })
+    },
   })
 }
 
@@ -71,7 +77,10 @@ export function useDeleteReceivable() {
       const { error } = await supabase.from('receivables').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['receivables'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['receivables'] })
+      qc.invalidateQueries({ queryKey: ['finance-summary'] })
+    },
   })
 }
 
@@ -95,6 +104,7 @@ export function useCreateReceipt() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['receipts'] })
       qc.invalidateQueries({ queryKey: ['receivables'] })
+      qc.invalidateQueries({ queryKey: ['finance-summary'] })
     },
   })
 }
@@ -109,6 +119,7 @@ export function useDeleteReceipt() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['receipts'] })
       qc.invalidateQueries({ queryKey: ['receivables'] })
+      qc.invalidateQueries({ queryKey: ['finance-summary'] })
     },
   })
 }

@@ -49,7 +49,10 @@ export function useCreatePayable() {
       if (error) throw error
       return data
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['payables'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payables'] })
+      qc.invalidateQueries({ queryKey: ['finance-summary'] })
+    },
   })
 }
 
@@ -61,7 +64,10 @@ export function useUpdatePayable() {
       if (error) throw error
       return data
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['payables'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payables'] })
+      qc.invalidateQueries({ queryKey: ['finance-summary'] })
+    },
   })
 }
 
@@ -72,7 +78,10 @@ export function useDeletePayable() {
       const { error } = await supabase.from('payables').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['payables'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payables'] })
+      qc.invalidateQueries({ queryKey: ['finance-summary'] })
+    },
   })
 }
 
@@ -96,6 +105,7 @@ export function useCreatePayment() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['payments'] })
       qc.invalidateQueries({ queryKey: ['payables'] })
+      qc.invalidateQueries({ queryKey: ['finance-summary'] })
     },
   })
 }
@@ -110,6 +120,7 @@ export function useDeletePayment() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['payments'] })
       qc.invalidateQueries({ queryKey: ['payables'] })
+      qc.invalidateQueries({ queryKey: ['finance-summary'] })
     },
   })
 }

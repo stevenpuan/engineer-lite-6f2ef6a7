@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useReceivables, useCreateReceivable, useDeleteReceivable } from '@/hooks/useReceivables'
+import { useReceivables, useCreateReceivable, useDeleteReceivable, useReceipts, useCreateReceipt, useDeleteReceipt } from '@/hooks/useReceivables'
+import { SettlementDialog } from '@/components/SettlementDialog'
 import { useProjects } from '@/hooks/useProjects'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
-import { Plus, Search, Trash2 } from 'lucide-react'
+import { Plus, Search, Trash2, HandCoins } from 'lucide-react'
 import { RECEIVABLE_STATUS_LABELS, type ReceivableStatus } from '@/types/database'
 import { toast } from 'sonner'
 
@@ -31,6 +32,12 @@ export default function ReceivablesPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState({ project_id: '', label: '', amount: '', due_date: '' })
   const [search, setSearch] = useState('')
+  const [settleId, setSettleId] = useState<string | null>(null)
+
+  const settling = receivables.find(r => r.id === settleId) ?? null
+  const { data: receipts = [] } = useReceipts(settleId ?? undefined)
+  const createReceipt = useCreateReceipt()
+  const deleteReceipt = useDeleteReceipt()
 
   const filtered = receivables.filter(r =>
     r.label.includes(search) || (r.project as { name: string } | null)?.name?.includes(search)
@@ -97,6 +104,11 @@ export default function ReceivablesPage() {
                 <div className="text-sm text-muted-foreground">
                   {(r.project as { name: string } | null)?.name ?? '—'} · ${Number(r.amount).toLocaleString()}
                 </div>
+                {r.status !== 'cancelled' && (
+                  <Button variant="outline" size="sm" className="mt-2" onClick={() => setSettleId(r.id)}>
+                    <HandCoins className="mr-1 h-4 w-4" />登記收款
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -111,7 +123,7 @@ export default function ReceivablesPage() {
                   <TableHead className="text-right">金額</TableHead>
                   <TableHead>到期日</TableHead>
                   <TableHead>狀態</TableHead>
-                  <TableHead className="w-16"></TableHead>
+                  <TableHead className="w-40"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -122,8 +134,13 @@ export default function ReceivablesPage() {
                     <TableCell className="text-right">${Number(r.amount).toLocaleString()}</TableCell>
                     <TableCell>{r.due_date ?? '—'}</TableCell>
                     <TableCell><Badge className={statusStyle[r.status]} variant="secondary">{RECEIVABLE_STATUS_LABELS[r.status]}</Badge></TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    <TableCell className="whitespace-nowrap text-right">
+                      {r.status !== 'cancelled' && (
+                        <Button variant="outline" size="sm" onClick={() => setSettleId(r.id)}>
+                          <HandCoins className="mr-1 h-4 w-4" />登記收款
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" aria-label="刪除應收" onClick={() => handleDelete(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -162,6 +179,23 @@ export default function ReceivablesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <SettlementDialog
+        open={!!settling}
+        onOpenChange={open => { if (!open) setSettleId(null) }}
+        kind="receipt"
+        subject={settling ? `${(settling.project as { name: string } | null)?.name ?? ''} · ${settling.label}` : ''}
+        totalAmount={Number(settling?.amount ?? 0)}
+        records={receipts.map(r => ({ id: r.id, date: r.received_date, amount: Number(r.amount), method: r.method, reference_no: r.reference_no }))}
+        onCreate={input => createReceipt.mutateAsync({
+          receivable_id: settleId!,
+          received_date: input.date,
+          amount: input.amount,
+          method: input.method,
+          reference_no: input.reference_no,
+        })}
+        onDelete={id => deleteReceipt.mutateAsync(id)}
+      />
     </div>
   )
 }
