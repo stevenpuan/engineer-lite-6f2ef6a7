@@ -14,15 +14,15 @@ import { Select } from '@/components/ui/select'
 import { ArrowLeft, Check, Copy, Pencil, Plus, Trash2, X } from 'lucide-react'
 import type { QuoteStatus } from '@/types/database'
 import { toast } from 'sonner'
+import { StatusBadge } from '@/components/StatusBadge'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
-const statusStyle: Record<QuoteStatus, string> = {
-  '草稿': 'bg-gray-100 text-gray-800',
-  '已送出': 'bg-blue-100 text-blue-800',
-  '已接受': 'bg-green-100 text-green-800',
-  '已拒絕': 'bg-red-100 text-red-800',
-  '已過期': 'bg-yellow-100 text-yellow-800',
-}
 const allStatuses: QuoteStatus[] = ['草稿', '已送出', '已接受', '已拒絕', '已過期']
+
+/** 由已存的稅額反推稅率（%），小計為 0 時預設 5% */
+function currentTaxRate(q: { subtotal: number; tax: number }): number {
+  return q.subtotal > 0 ? Math.round((Number(q.tax) / Number(q.subtotal)) * 100) : 5
+}
 
 export default function QuoteDetailPage() {
   const canDelete = useCanDelete()
@@ -61,13 +61,24 @@ export default function QuoteDetailPage() {
 
   async function handleNewVersion() {
     if (!id) return
-    if (!confirm('複製成新版本？舊版本會保留，列表只顯示最新版。')) return
     try {
       const newId = await newVersion.mutateAsync(id)
       toast.success('已建立新版本')
       navigate({ to: '/quotes/$id', params: { id: newId } })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '建立新版本失敗')
+    }
+  }
+
+  async function handleTaxRateChange(rate: number) {
+    if (!quote) return
+    const subtotal = Number(quote.subtotal)
+    const tax = Math.round(subtotal * (rate / 100))
+    try {
+      await updateQuote.mutateAsync({ id, tax, total: subtotal + tax })
+      toast.success(rate === 0 ? '已改為免稅' : `稅率已改為 ${rate}%`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '更新失敗')
     }
   }
 
@@ -141,11 +152,19 @@ export default function QuoteDetailPage() {
             <Button variant="ghost" size="icon" onClick={() => setTitleDraft(null)} aria-label="取消"><X className="h-4 w-4" /></Button>
           </div>
         )}
-        <Badge className={statusStyle[quote.status]} variant="secondary">{quote.status}</Badge>
+        <StatusBadge status={quote.status} />
         {(quote.version ?? 1) > 1 && <Badge variant="outline">v{quote.version}</Badge>}
-        <Button variant="outline" size="sm" className="ml-auto" onClick={handleNewVersion} disabled={newVersion.isPending}>
-          <Copy className="mr-1 h-4 w-4" />另存新版本
-        </Button>
+        <ConfirmDialog
+          title="另存新版本"
+          description="會複製目前內容成新版本，舊版本保留，列表只顯示最新版。"
+          confirmLabel="建立新版本"
+          onConfirm={handleNewVersion}
+          trigger={
+            <Button variant="outline" size="sm" className="ml-auto" disabled={newVersion.isPending}>
+              <Copy className="mr-1 h-4 w-4" />另存新版本
+            </Button>
+          }
+        />
       </div>
       {quote.is_latest === false && (
         <div className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">這是舊版本，僅供查閱；最新版本請回報價單列表。</div>
@@ -166,7 +185,18 @@ export default function QuoteDetailPage() {
           <CardHeader><CardTitle className="text-base">金額 & 狀態</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">小計</span><span>${quote.subtotal.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">稅 (5%)</span><span>${quote.tax.toLocaleString()}</span></div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">稅率</span>
+              <Select
+                className="h-8 w-32"
+                value={String(currentTaxRate(quote))}
+                onChange={e => handleTaxRateChange(Number(e.target.value))}
+              >
+                <option value="5">外加 5%</option>
+                <option value="0">免稅 0%</option>
+              </Select>
+            </div>
+            <div className="flex justify-between"><span className="text-muted-foreground">稅額</span><span>${quote.tax.toLocaleString()}</span></div>
             <div className="flex justify-between font-semibold text-base"><span>合計</span><span>${quote.total.toLocaleString()}</span></div>
             <div className="pt-2">
               <Label>變更狀態</Label>

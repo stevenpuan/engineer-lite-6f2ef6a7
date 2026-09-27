@@ -28,8 +28,8 @@ export function Sidebar() {
     { label: '客戶管理', to: '/clients', icon: <Users className="h-5 w-5" /> },
     { label: '案件管理', to: '/projects', icon: <FolderKanban className="h-5 w-5" /> },
     { label: '報價單', to: '/quotes', icon: <FileText className="h-5 w-5" />, module: 'quote' },
-    { label: '收款管理', to: '/receivables', icon: <Wallet className="h-5 w-5" />, module: 'receivable' },
-    { label: '支出管理', to: '/expenses', icon: <Receipt className="h-5 w-5" />, module: 'payable' },
+    { label: '應收帳款', to: '/receivables', icon: <Wallet className="h-5 w-5" />, module: 'receivable' },
+    { label: '雜支支出', to: '/expenses', icon: <Receipt className="h-5 w-5" />, module: 'payable' },
     { label: '應付帳款', to: '/payables', icon: <CreditCard className="h-5 w-5" />, module: 'payable' },
     { label: '發票與稅務', to: '/invoices', icon: <Landmark className="h-5 w-5" />, module: 'invoice' },
     { label: '階段範本', to: '/stage-templates', icon: <ListChecks className="h-5 w-5" />, module: 'progress' },
@@ -53,9 +53,9 @@ export function Sidebar() {
         to={item.to}
         onClick={() => setMobileOpen(false)}
         className={cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+          'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
           active
-            ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
+            ? 'bg-primary text-primary-foreground font-medium shadow-sm'
             : 'text-sidebar-foreground hover:bg-sidebar-accent/60'
         )}
       >

@@ -6,7 +6,6 @@ import { useReceivables } from '@/hooks/useReceivables'
 import { useExpenses } from '@/hooks/useExpenses'
 import { usePayables } from '@/hooks/usePayables'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -17,47 +16,9 @@ import { RECEIVABLE_STATUS_LABELS, PAYABLE_STATUS_LABELS, EXPENSE_CATEGORY_LABEL
 import { toast } from 'sonner'
 import { useModules } from '@/contexts/ModuleContext'
 import { ProjectProgressTab } from '@/components/ProjectProgressTab'
-
-const statusColor: Record<string, string> = {
-  '洽談中': 'bg-yellow-100 text-yellow-800',
-  '進行中': 'bg-blue-100 text-blue-800',
-  '完工': 'bg-green-100 text-green-800',
-  '結案': 'bg-gray-100 text-gray-800',
-  '取消': 'bg-red-100 text-red-800',
-}
+import { StatusBadge } from '@/components/StatusBadge'
 
 const allStatuses: ProjectStatus[] = ['洽談中', '進行中', '完工', '結案', '取消']
-
-const quoteStatusStyle: Record<string, string> = {
-  '草稿': 'bg-gray-100 text-gray-800',
-  '已送出': 'bg-blue-100 text-blue-800',
-  '已接受': 'bg-green-100 text-green-800',
-  '已拒絕': 'bg-red-100 text-red-800',
-  '已過期': 'bg-yellow-100 text-yellow-800',
-}
-
-const receivableStatusStyle: Record<string, string> = {
-  pending: 'bg-gray-100 text-gray-800',
-  invoiced: 'bg-blue-100 text-blue-800',
-  partial: 'bg-yellow-100 text-yellow-800',
-  paid: 'bg-green-100 text-green-800',
-  overdue: 'bg-red-100 text-red-800',
-  cancelled: 'bg-gray-100 text-gray-500',
-}
-
-const payableStatusStyle: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  partial: 'bg-blue-100 text-blue-800',
-  paid: 'bg-green-100 text-green-800',
-  cancelled: 'bg-gray-100 text-gray-500',
-}
-
-const expenseStatusStyle: Record<string, string> = {
-  unpaid: 'bg-yellow-100 text-yellow-800',
-  paid: 'bg-green-100 text-green-800',
-  partial: 'bg-blue-100 text-blue-800',
-  cancelled: 'bg-gray-100 text-gray-500',
-}
 const expenseStatusLabel: Record<string, string> = {
   unpaid: '未付', paid: '已付', partial: '部分', cancelled: '取消',
 }
@@ -119,7 +80,7 @@ export default function ProjectDetailPage() {
       <div className="flex items-center gap-3">
         <Link to="/projects"><Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button></Link>
         <h1 className="text-2xl font-bold">{project.name}</h1>
-        <Badge className={statusColor[project.status] ?? ''} variant="secondary">{project.status}</Badge>
+        <StatusBadge status={project.status} />
       </div>
 
       {/* Tab bar */}
@@ -196,7 +157,7 @@ export default function ProjectDetailPage() {
                     <TableCell className="font-medium">{q.title}</TableCell>
                     <TableCell className="text-muted-foreground">{q.quote_no ?? '—'}</TableCell>
                     <TableCell className="text-right">${q.total.toLocaleString()}</TableCell>
-                    <TableCell><Badge className={quoteStatusStyle[q.status] ?? ''} variant="secondary">{q.status}</Badge></TableCell>
+                    <TableCell><StatusBadge status={q.status} /></TableCell>
                     <TableCell>
                       <Link to="/quotes/$id" params={{ id: q.id }}><Button variant="ghost" size="icon"><ExternalLink className="h-4 w-4" /></Button></Link>
                     </TableCell>
@@ -231,7 +192,7 @@ export default function ProjectDetailPage() {
                     <TableCell className="font-medium">{r.label}</TableCell>
                     <TableCell className="text-right">${Number(r.amount).toLocaleString()}</TableCell>
                     <TableCell>{r.due_date ?? '—'}</TableCell>
-                    <TableCell><Badge className={receivableStatusStyle[r.status] ?? ''} variant="secondary">{RECEIVABLE_STATUS_LABELS[r.status]}</Badge></TableCell>
+                    <TableCell><StatusBadge status={RECEIVABLE_STATUS_LABELS[r.status]} /></TableCell>
                   </TableRow>
                 ))}
                 {receivables.length === 0 && (
@@ -265,7 +226,7 @@ export default function ProjectDetailPage() {
                     <TableCell className="font-medium">{e.description}</TableCell>
                     <TableCell>{EXPENSE_CATEGORY_LABELS[e.category] ?? e.category}</TableCell>
                     <TableCell className="text-right">${Number(e.amount).toLocaleString()}</TableCell>
-                    <TableCell><Badge className={expenseStatusStyle[e.status] ?? ''} variant="secondary">{expenseStatusLabel[e.status] ?? e.status}</Badge></TableCell>
+                    <TableCell><StatusBadge status={expenseStatusLabel[e.status] ?? e.status} /></TableCell>
                   </TableRow>
                 ))}
                 {expenses.length === 0 && (
@@ -299,7 +260,7 @@ export default function ProjectDetailPage() {
                     <TableCell>{p.description ?? '—'}</TableCell>
                     <TableCell className="text-right">${Number(p.amount).toLocaleString()}</TableCell>
                     <TableCell>{p.due_date ?? '—'}</TableCell>
-                    <TableCell><Badge className={payableStatusStyle[p.status] ?? ''} variant="secondary">{PAYABLE_STATUS_LABELS[p.status]}</Badge></TableCell>
+                    <TableCell><StatusBadge status={PAYABLE_STATUS_LABELS[p.status]} /></TableCell>
                   </TableRow>
                 ))}
                 {payables.length === 0 && (

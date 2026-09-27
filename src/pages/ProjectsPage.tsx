@@ -6,7 +6,6 @@ import { useClients } from '@/hooks/useClients'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Select } from '@/components/ui/select'
@@ -17,14 +16,8 @@ import { toast } from 'sonner'
 import { useModules } from '@/contexts/ModuleContext'
 import { useProjectProgress } from '@/hooks/useProgress'
 import { ProgressBar } from '@/components/ProjectProgressTab'
-
-const statusColor: Record<string, string> = {
-  '洽談中': 'bg-yellow-100 text-yellow-800',
-  '進行中': 'bg-blue-100 text-blue-800',
-  '完工': 'bg-green-100 text-green-800',
-  '結案': 'bg-gray-100 text-gray-800',
-  '取消': 'bg-red-100 text-red-800',
-}
+import { StatusBadge } from '@/components/StatusBadge'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 const allStatuses: ProjectStatus[] = ['洽談中', '進行中', '完工', '結案', '取消']
 
@@ -75,7 +68,6 @@ export default function ProjectsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('確定要刪除此案件？')) return
     try {
       await deleteProject.mutateAsync(id)
       toast.success('案件已刪除')
@@ -111,7 +103,7 @@ export default function ProjectsPage() {
                   <Link to="/projects/$id" params={{ id: p.id }} className="font-medium text-primary hover:underline flex items-center gap-1">
                     {p.name} <ExternalLink className="h-3 w-3" />
                   </Link>
-                  <Badge className={statusColor[p.status] ?? ''} variant="secondary">{p.status}</Badge>
+                  <StatusBadge status={p.status} />
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {(p.client as { name: string } | null)?.name ?? '—'}
@@ -149,7 +141,7 @@ export default function ProjectsPage() {
                       </Link>
                     </TableCell>
                     <TableCell>{(p.client as { name: string } | null)?.name ?? '—'}</TableCell>
-                    <TableCell><Badge className={statusColor[p.status] ?? ''} variant="secondary">{p.status}</Badge></TableCell>
+                    <TableCell><StatusBadge status={p.status} /></TableCell>
                     {showProgress && (
                       <TableCell>
                         {progressOf(p.id) ? (
@@ -162,9 +154,15 @@ export default function ProjectsPage() {
                     )}
                     <TableCell>{p.contract_amount != null ? `$${p.contract_amount.toLocaleString()}` : '—'}</TableCell>
                     <TableCell>
-                      {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>)}
+                      {canDelete && (
+                        <ConfirmDialog
+                          title="刪除案件"
+                          description={`確定要刪除「${p.name}」？`}
+                          warning="這個案件的報價單、收支與進度紀錄會一併刪除，且無法復原。"
+                          onConfirm={() => handleDelete(p.id)}
+                          trigger={<Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                        />
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

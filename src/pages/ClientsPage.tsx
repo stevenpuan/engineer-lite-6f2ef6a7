@@ -10,6 +10,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Plus, Pencil, Trash2, Search } from 'lucide-react'
 import type { Client } from '@/types/database'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 const emptyForm = { name: '', contact_name: '', phone: '', email: '', address: '', notes: '' }
 
@@ -74,7 +75,6 @@ export default function ClientsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('確定要刪除此客戶？')) return
     try {
       await deleteClient.mutateAsync(id)
       toast.success('客戶已刪除')
@@ -82,6 +82,8 @@ export default function ClientsPage() {
       toast.error(err instanceof Error ? err.message : '刪除失敗')
     }
   }
+
+  const deleteWarning = '這個客戶底下的案件、報價單與款項紀錄會一併刪除，且無法復原。'
 
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">載入中...</div>
 
@@ -115,7 +117,15 @@ export default function ClientsPage() {
                   <span className="font-medium">{c.name}</span>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                    {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
+                    {canDelete && (
+                      <ConfirmDialog
+                        title="刪除客戶"
+                        description={`確定要刪除「${c.name}」？`}
+                        warning={deleteWarning}
+                        onConfirm={() => handleDelete(c.id)}
+                        trigger={<Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                      />
+                    )}
                   </div>
                 </div>
                 {c.contact_name && <div className="text-sm text-muted-foreground">聯絡人：{c.contact_name}</div>}
@@ -146,7 +156,15 @@ export default function ClientsPage() {
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                        {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
+                        {canDelete && (
+                          <ConfirmDialog
+                            title="刪除客戶"
+                            description={`確定要刪除「${c.name}」？`}
+                            warning={deleteWarning}
+                            onConfirm={() => handleDelete(c.id)}
+                            trigger={<Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                          />
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

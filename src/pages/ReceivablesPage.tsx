@@ -10,19 +10,11 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import { Plus, Search, Trash2, HandCoins } from 'lucide-react'
-import { RECEIVABLE_STATUS_LABELS, type ReceivableStatus } from '@/types/database'
+import { RECEIVABLE_STATUS_LABELS } from '@/types/database'
 import { toast } from 'sonner'
-
-const statusStyle: Record<ReceivableStatus, string> = {
-  pending: 'bg-gray-100 text-gray-800',
-  invoiced: 'bg-blue-100 text-blue-800',
-  partial: 'bg-yellow-100 text-yellow-800',
-  paid: 'bg-green-100 text-green-800',
-  overdue: 'bg-red-100 text-red-800',
-  cancelled: 'bg-gray-100 text-gray-500',
-}
+import { StatusBadge } from '@/components/StatusBadge'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 export default function ReceivablesPage() {
   const canDelete = useCanDelete()
@@ -67,7 +59,6 @@ export default function ReceivablesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('確定要刪除？')) return
     try {
       await deleteReceivable.mutateAsync(id)
       toast.success('已刪除')
@@ -81,7 +72,7 @@ export default function ReceivablesPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">收款管理</h1>
+        <h1 className="text-2xl font-bold">應收帳款</h1>
         <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" />新增應收</Button>
       </div>
 
@@ -101,7 +92,7 @@ export default function ReceivablesPage() {
               <div key={r.id} className="p-4 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{r.label}</span>
-                  <Badge className={statusStyle[r.status]} variant="secondary">{RECEIVABLE_STATUS_LABELS[r.status]}</Badge>
+                  <StatusBadge status={RECEIVABLE_STATUS_LABELS[r.status]} />
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {(r.project as { name: string } | null)?.name ?? '—'} · ${Number(r.amount).toLocaleString()}
@@ -112,7 +103,15 @@ export default function ReceivablesPage() {
                       <HandCoins className="mr-1 h-4 w-4" />登記收款
                     </Button>
                   )}
-                  {canDelete && (<Button variant="ghost" size="icon" aria-label="刪除應收" className="ml-auto" onClick={() => handleDelete(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
+                  {canDelete && (
+                    <ConfirmDialog
+                      title="刪除應收帳款"
+                      description={`確定要刪除「${r.label}」？`}
+                      warning="已登記的收款紀錄會一併刪除，且無法復原。"
+                      onConfirm={() => handleDelete(r.id)}
+                      trigger={<Button variant="ghost" size="icon" aria-label="刪除應收" className="ml-auto"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                    />
+                  )}
                 </div>
               </div>
             ))}
@@ -138,14 +137,22 @@ export default function ReceivablesPage() {
                     <TableCell>{(r.project as { name: string } | null)?.name ?? '—'}</TableCell>
                     <TableCell className="text-right">${Number(r.amount).toLocaleString()}</TableCell>
                     <TableCell>{r.due_date ?? '—'}</TableCell>
-                    <TableCell><Badge className={statusStyle[r.status]} variant="secondary">{RECEIVABLE_STATUS_LABELS[r.status]}</Badge></TableCell>
+                    <TableCell><StatusBadge status={RECEIVABLE_STATUS_LABELS[r.status]} /></TableCell>
                     <TableCell className="whitespace-nowrap text-right">
                       {r.status !== 'cancelled' && (
                         <Button variant="outline" size="sm" onClick={() => setSettleId(r.id)}>
                           <HandCoins className="mr-1 h-4 w-4" />登記收款
                         </Button>
                       )}
-                      {canDelete && (<Button variant="ghost" size="icon" aria-label="刪除應收" onClick={() => handleDelete(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
+                      {canDelete && (
+                        <ConfirmDialog
+                          title="刪除應收帳款"
+                          description={`確定要刪除「${r.label}」？`}
+                          warning="已登記的收款紀錄會一併刪除，且無法復原。"
+                          onConfirm={() => handleDelete(r.id)}
+                          trigger={<Button variant="ghost" size="icon" aria-label="刪除應收"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                        />
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

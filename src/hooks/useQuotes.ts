@@ -139,7 +139,7 @@ export function useDeleteQuoteItem() {
   })
 }
 
-/** Recalculate quote totals from items */
+/** Recalculate quote totals from items. 稅率沿用報價單目前的稅率（由 tax/subtotal 推回），預設 5% */
 export function useRecalcQuote() {
   const qc = useQueryClient()
   return useMutation({
@@ -149,8 +149,16 @@ export function useRecalcQuote() {
         .select('amount')
         .eq('quote_id', quoteId)
       if (e1) throw e1
+      const { data: q, error: e0 } = await supabase
+        .from('quotes')
+        .select('subtotal, tax')
+        .eq('id', quoteId)
+        .single()
+      if (e0) throw e0
+      const prevSubtotal = Number(q.subtotal) || 0
+      const rate = prevSubtotal > 0 ? Number(q.tax) / prevSubtotal : 0.05
       const subtotal = (items ?? []).reduce((s, i) => s + Number(i.amount), 0)
-      const tax = Math.round(subtotal * 0.05)
+      const tax = Math.round(subtotal * rate)
       const total = subtotal + tax
       const { error: e2 } = await supabase
         .from('quotes')
