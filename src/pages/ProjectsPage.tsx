@@ -158,7 +158,7 @@ export default function ProjectsPage() {
                         <ConfirmDialog
                           title="刪除案件"
                           description={`確定要刪除「${p.name}」？`}
-                          warning="這個案件的報價單、收支與進度紀錄會一併刪除，且無法復原。"
+                          warning="這個案件的報價單、應收帳款（含收款紀錄）與進度紀錄會一併刪除；雜支支出、應付帳款和發票會保留，但不再屬於任何案件。無法復原。"
                           onConfirm={() => handleDelete(p.id)}
                           trigger={<Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
                         />

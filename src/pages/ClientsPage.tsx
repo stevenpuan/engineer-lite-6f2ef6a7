@@ -83,7 +83,7 @@ export default function ClientsPage() {
     }
   }
 
-  const deleteWarning = '這個客戶底下的案件、報價單與款項紀錄會一併刪除，且無法復原。'
+  const deleteWarning = '這個客戶底下的案件會保留，但會變成「未指定客戶」。刪除後無法復原。'
 
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">載入中...</div>
 

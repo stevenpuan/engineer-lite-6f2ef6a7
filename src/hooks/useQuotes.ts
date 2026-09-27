@@ -87,8 +87,13 @@ export function useDeleteQuote() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
+      // 刪掉最新版本時，要把上一版設回「最新」，否則整份報價會從列表消失
+      const { data: q } = await supabase.from('quotes').select('is_latest, parent_quote_id').eq('id', id).single()
       const { error } = await supabase.from('quotes').delete().eq('id', id)
       if (error) throw error
+      if (q?.is_latest && q.parent_quote_id) {
+        await supabase.from('quotes').update({ is_latest: true } as never).eq('id', q.parent_quote_id)
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['quotes'] }),
   })
