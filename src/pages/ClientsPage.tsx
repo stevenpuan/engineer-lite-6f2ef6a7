@@ -117,7 +117,15 @@ export default function ClientsPage() {
                   <span className="font-medium">{c.name}</span>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                    {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
+                    {canDelete && (
+                      <ConfirmDialog
+                        title="刪除客戶"
+                        description={`確定要刪除「${c.name}」？`}
+                        warning={deleteWarning}
+                        onConfirm={() => handleDelete(c.id)}
+                        trigger={<Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                      />
+                    )}
                   </div>
                 </div>
                 {c.contact_name && <div className="text-sm text-muted-foreground">聯絡人：{c.contact_name}</div>}
@@ -148,7 +156,15 @@ export default function ClientsPage() {
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                        {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
+                        {canDelete && (
+                          <ConfirmDialog
+                            title="刪除客戶"
+                            description={`確定要刪除「${c.name}」？`}
+                            warning={deleteWarning}
+                            onConfirm={() => handleDelete(c.id)}
+                            trigger={<Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                          />
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
