@@ -120,7 +120,7 @@ export default function DashboardPage() {
             )}
             <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-sm">
               <span className="text-muted-foreground">現金流（本月進 − 本月出）</span>
-              <span className={month.cash_net < 0 ? 'font-semibold text-red-600' : 'font-semibold text-green-700'}>
+              <span className={month.cash_net < 0 ? 'font-semibold text-destructive' : 'font-semibold text-status-done'}>
                 {month.cash_net < 0 ? '−' : ''}${Math.abs(month.cash_net).toLocaleString()}
               </span>
             </div>
@@ -145,7 +145,7 @@ export default function DashboardPage() {
                     <div className="font-medium truncate">{m.name}</div>
                     <div className="text-xs text-muted-foreground">收入 ${Number(m.revenue).toLocaleString()} · 成本 ${Number(m.cost).toLocaleString()}</div>
                   </div>
-                  <div className={Number(m.margin) < 0 ? 'text-right font-semibold text-red-600' : 'text-right font-semibold text-green-700'}>
+                  <div className={Number(m.margin) < 0 ? 'text-right font-semibold text-destructive' : 'text-right font-semibold text-status-done'}>
                     ${Number(m.margin).toLocaleString()}
                     {Number(m.revenue) > 0 && <div className="text-xs font-normal text-muted-foreground">{Math.round((Number(m.margin) / Number(m.revenue)) * 100)}%</div>}
                   </div>
@@ -156,10 +156,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
-
-      <p className="text-xs text-muted-foreground">
-        累計：報價 ${totalQuoted.toLocaleString()} · 已收 ${totalReceived.toLocaleString()} · 支出 ${totalExpenses.toLocaleString()} · 應付未付 ${totalPayables.toLocaleString()}
-      </p>
 
       {showProgress && staleProjects.length > 0 && (
         <Card>
@@ -176,7 +172,7 @@ export default function DashboardPage() {
                 >
                   <div className="min-w-0">
                     <div className="font-medium truncate">{p.name}</div>
-                    <div className={days === null || days >= 3 ? 'text-sm text-orange-600' : 'text-sm text-muted-foreground'}>
+                    <div className={days === null || days >= 3 ? 'text-sm text-accent' : 'text-sm text-muted-foreground'}>
                       {days === null ? '尚未回報過' : days === 0 ? '今天有回報' : `${days} 天沒回報`}
                     </div>
                   </div>
@@ -213,9 +209,7 @@ export default function DashboardPage() {
                         {pf && ` · 收 $${(pf.received_total ?? 0).toLocaleString()} / 支 $${(pf.expense_total ?? 0).toLocaleString()}`}
                       </div>
                     </div>
-                    <Badge className={statusColor[p.status] ?? ''} variant="secondary">
-                      {p.status}
-                    </Badge>
+                    <StatusBadge status={p.status} />
                   </Link>
                 )
               })}
@@ -231,9 +225,20 @@ function Stat({ label, value, tone }: { label: string; value: number; tone?: 'gr
   return (
     <div className="rounded-lg border p-2">
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className={cn('text-base font-bold sm:text-lg', tone === 'green' && 'text-green-700', tone === 'red' && 'text-red-600')}>
+      <div className={cn('text-base font-bold sm:text-lg', tone === 'green' && 'text-status-done', tone === 'red' && 'text-destructive')}>
         ${Number(value).toLocaleString()}
       </div>
     </div>
+  )
+}
+
+function FinanceStat({ label, value, className, valueClass }: { label: string; value: number; className?: string; valueClass?: string }) {
+  return (
+    <Card className={cn('py-3', className)}>
+      <CardContent className="px-4 py-0">
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className={cn('mt-1 truncate text-lg font-bold sm:text-2xl', valueClass)}>${Number(value).toLocaleString()}</div>
+      </CardContent>
+    </Card>
   )
 }
