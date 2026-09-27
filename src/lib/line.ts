@@ -1,6 +1,6 @@
 // LINE 官方帳號設定（平台共用一個官方帳號，靠綁定分辨店鋪）
 // 開通官方帳號後，把 Basic ID（例如 @123abcde）填在這裡。
-export const LINE_OA_BASIC_ID = ''
+export const LINE_OA_BASIC_ID = '@995nanib'
 
 export const LINE_ADD_FRIEND_URL = LINE_OA_BASIC_ID
   ? `https://line.me/R/ti/p/${encodeURIComponent(LINE_OA_BASIC_ID)}`
