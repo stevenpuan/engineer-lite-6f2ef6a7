@@ -14,15 +14,15 @@ import { Select } from '@/components/ui/select'
 import { ArrowLeft, Check, Copy, Pencil, Plus, Trash2, X } from 'lucide-react'
 import type { QuoteStatus } from '@/types/database'
 import { toast } from 'sonner'
+import { StatusBadge } from '@/components/StatusBadge'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
-const statusStyle: Record<QuoteStatus, string> = {
-  '草稿': 'bg-gray-100 text-gray-800',
-  '已送出': 'bg-blue-100 text-blue-800',
-  '已接受': 'bg-green-100 text-green-800',
-  '已拒絕': 'bg-red-100 text-red-800',
-  '已過期': 'bg-yellow-100 text-yellow-800',
-}
 const allStatuses: QuoteStatus[] = ['草稿', '已送出', '已接受', '已拒絕', '已過期']
+
+/** 由已存的稅額反推稅率（%），小計為 0 時預設 5% */
+function currentTaxRate(q: { subtotal: number; tax: number }): number {
+  return q.subtotal > 0 ? Math.round((Number(q.tax) / Number(q.subtotal)) * 100) : 5
+}
 
 export default function QuoteDetailPage() {
   const canDelete = useCanDelete()
@@ -61,13 +61,24 @@ export default function QuoteDetailPage() {
 
   async function handleNewVersion() {
     if (!id) return
-    if (!confirm('複製成新版本？舊版本會保留，列表只顯示最新版。')) return
     try {
       const newId = await newVersion.mutateAsync(id)
       toast.success('已建立新版本')
       navigate({ to: '/quotes/$id', params: { id: newId } })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '建立新版本失敗')
+    }
+  }
+
+  async function handleTaxRateChange(rate: number) {
+    if (!quote) return
+    const subtotal = Number(quote.subtotal)
+    const tax = Math.round(subtotal * (rate / 100))
+    try {
+      await updateQuote.mutateAsync({ id, tax, total: subtotal + tax })
+      toast.success(rate === 0 ? '已改為免稅' : `稅率已改為 ${rate}%`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '更新失敗')
     }
   }
 
