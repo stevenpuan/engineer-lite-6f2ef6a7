@@ -22,45 +22,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      if (session?.user) {
-        loadProfile(session.user.id)
-      } else {
-        setLoading(false)
-      }
-    })
+    // 同一個使用者只載入一次 profile（避免 getSession 與 INITIAL_SESSION／TOKEN_REFRESHED 重複查詢）
+    let loadedFor: string | null = null
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    function handle(session: Session | null) {
       setSession(session)
-      if (session?.user) {
-        loadProfile(session.user.id)
-      } else {
+      const uid = session?.user?.id ?? null
+      if (!uid) {
+        loadedFor = null
         setProfile(null)
         setIsPlatformAdmin(false)
         setLoading(false)
+        return
       }
-    })
+      if (uid === loadedFor) return
+      loadedFor = uid
+      // 放到下一個 tick，避免在 auth callback 裡呼叫 supabase 造成鎖死
+      setTimeout(() => { void loadProfile(uid) }, 0)
+    }
 
+    supabase.auth.getSession().then(({ data: { session } }) => handle(session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => handle(session))
     return () => subscription.unsubscribe()
   }, [])
 
   async function loadProfile(userId: string) {
     try {
-      // Load profile
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
+      // profile 與平台管理員身分同時查
+      const [{ data: prof }, { data: admin }] = await Promise.all([
+        supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
+        supabase.from('platform_admins').select('user_id').eq('user_id', userId).maybeSingle(),
+      ])
       setProfile(prof as Profile | null)
-
-      // Check platform admin
-      const { data: admin } = await supabase
-        .from('platform_admins')
-        .select('user_id')
-        .eq('user_id', userId)
-        .maybeSingle()
       setIsPlatformAdmin(!!admin)
     } catch {
       // Profile may not exist yet for platform admins without tenant

@@ -104,11 +104,14 @@ export default function PayablesPage() {
                 <div className="text-sm text-muted-foreground">
                   {(p.project as { name: string } | null)?.name ?? '—'} · ${Number(p.amount).toLocaleString()}
                 </div>
-                {p.status !== 'cancelled' && (
-                  <Button variant="outline" size="sm" className="mt-2" onClick={() => setSettleId(p.id)}>
-                    <Banknote className="mr-1 h-4 w-4" />登記付款
-                  </Button>
-                )}
+                <div className="mt-2 flex items-center gap-2">
+                  {p.status !== 'cancelled' && (
+                    <Button variant="outline" size="sm" onClick={() => setSettleId(p.id)}>
+                      <Banknote className="mr-1 h-4 w-4" />登記付款
+                    </Button>
+                  )}
+                  {canDelete && (<Button variant="ghost" size="icon" aria-label="刪除應付" className="ml-auto" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
+                </div>
               </div>
             ))}
           </div>

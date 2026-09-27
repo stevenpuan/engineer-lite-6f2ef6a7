@@ -346,4 +346,6 @@ export interface DashboardMonth {
   cash_out: number
   cash_net: number
   margins?: ProjectMargin[]
+  /** 進行中＋完工案件總數（margins 只列毛利率最低的 20 件） */
+  margins_total?: number
 }

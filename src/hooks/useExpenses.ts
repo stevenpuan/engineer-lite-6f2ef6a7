@@ -2,15 +2,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import type { Expense } from '@/types/database'
 
-export function useExpenses(projectId?: string) {
+/** 伺服器每次最多回 1000 筆；列表頁用期間篩選避免被截斷 */
+export const EXPENSE_ROW_LIMIT = 1000
+
+export function useExpenses(projectId?: string, since?: string) {
   return useQuery({
-    queryKey: ['expenses', projectId],
+    queryKey: ['expenses', projectId, since],
     queryFn: async () => {
       let q = supabase
         .from('expenses')
         .select('*, project:projects(id, name)')
         .order('expense_date', { ascending: false })
+        .limit(EXPENSE_ROW_LIMIT)
       if (projectId) q = q.eq('project_id', projectId)
+      if (since) q = q.gte('expense_date', since)
       const { data, error } = await q
       if (error) throw error
       return data as Expense[]

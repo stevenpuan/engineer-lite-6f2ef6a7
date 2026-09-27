@@ -114,7 +114,12 @@ export default function DashboardPage() {
       {/* 案件毛利：只有老闆看得到（資料庫端同樣只回給老闆）*/}
       {month?.margins && month.margins.length > 0 && (
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-lg">案件毛利</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">案件毛利</CardTitle>
+            {(month.margins_total ?? 0) > month.margins.length && (
+              <p className="text-xs text-muted-foreground">共 {month.margins_total} 件，列出毛利率最低的 {month.margins.length} 件</p>
+            )}
+          </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {month.margins.map(m => (

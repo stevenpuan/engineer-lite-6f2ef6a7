@@ -106,11 +106,14 @@ export default function ReceivablesPage() {
                 <div className="text-sm text-muted-foreground">
                   {(r.project as { name: string } | null)?.name ?? '—'} · ${Number(r.amount).toLocaleString()}
                 </div>
-                {r.status !== 'cancelled' && (
-                  <Button variant="outline" size="sm" className="mt-2" onClick={() => setSettleId(r.id)}>
-                    <HandCoins className="mr-1 h-4 w-4" />登記收款
-                  </Button>
-                )}
+                <div className="mt-2 flex items-center gap-2">
+                  {r.status !== 'cancelled' && (
+                    <Button variant="outline" size="sm" onClick={() => setSettleId(r.id)}>
+                      <HandCoins className="mr-1 h-4 w-4" />登記收款
+                    </Button>
+                  )}
+                  {canDelete && (<Button variant="ghost" size="icon" aria-label="刪除應收" className="ml-auto" onClick={() => handleDelete(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
+                </div>
               </div>
             ))}
           </div>

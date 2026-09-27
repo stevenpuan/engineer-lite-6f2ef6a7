@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useCanDelete } from '@/hooks/useCanDelete'
-import { useExpenses, useCreateExpense, useDeleteExpense } from '@/hooks/useExpenses'
+import { useExpenses, useCreateExpense, useDeleteExpense, EXPENSE_ROW_LIMIT } from '@/hooks/useExpenses'
 import { useProjects } from '@/hooks/useProjects'
 import { ProjectSelect } from '@/components/ProjectSelect'
 import { Button } from '@/components/ui/button'
@@ -48,7 +48,8 @@ export default function ExpensesPage() {
   async function showPhoto(path: string) {
     try { await openExpensePhoto(path) } catch (err) { toast.error(err instanceof Error ? err.message : '無法開啟照片') }
   }
-  const { data: expenses = [], isLoading } = useExpenses()
+  const [period, setPeriod] = useState<PeriodKey>('3m')
+  const { data: expenses = [], isLoading } = useExpenses(undefined, periodStart(period))
   const { data: projects = [] } = useProjects()
   const createExpense = useCreateExpense()
   const deleteExpense = useDeleteExpense()
@@ -105,10 +106,20 @@ export default function ExpensesPage() {
         <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" />新增支出</Button>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="搜尋..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="搜尋說明、廠商、發票號碼" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        <Select aria-label="期間" value={period} onChange={e => setPeriod(e.target.value as PeriodKey)} className="sm:w-40">
+          {PERIODS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+        </Select>
       </div>
+      {expenses.length >= EXPENSE_ROW_LIMIT && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          這段期間超過 {EXPENSE_ROW_LIMIT} 筆，只列出最近的 {EXPENSE_ROW_LIMIT} 筆，總計也只算這些。請把期間縮小。
+        </div>
+      )}
 
       <Card>
         <CardHeader className="pb-3">
@@ -134,6 +145,7 @@ export default function ExpensesPage() {
                   <span>{e.expense_date}</span>
                   <Badge className={statusStyle[e.status] ?? ''} variant="secondary">{statusLabel[e.status] ?? e.status}</Badge>
                   <span>{EXPENSE_CATEGORY_LABELS[e.category] ?? e.category}</span>
+                  {canDelete && (<Button variant="ghost" size="icon" aria-label="刪除支出" className="ml-auto h-8 w-8" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
                 </div>
                 <ReceiptMeta e={e} />
               </div>
@@ -221,12 +233,36 @@ export default function ExpensesPage() {
   )
 }
 
-/** 廠商／發票號碼（LINE 拍照記帳辨識後會帶入） */
+/** 廠商／發票號碼（LINE 拍照記帳辨識後會帶入）；說明已含廠商名稱就不重複 */
 function ReceiptMeta({ e }: { e: Expense }) {
-  if (!e.vendor_name && !e.receipt_no) return null
+  const vendor = e.vendor_name && !e.description.includes(e.vendor_name) ? e.vendor_name : null
+  if (!vendor && !e.receipt_no) return null
   return (
     <div className="text-xs text-muted-foreground font-normal">
-      {[e.vendor_name, e.receipt_no && `發票 ${e.receipt_no}`].filter(Boolean).join(' · ')}
+      {[vendor, e.receipt_no && `發票 ${e.receipt_no}`].filter(Boolean).join(' · ')}
     </div>
   )
+}
+
+type PeriodKey = 'month' | '3m' | 'year' | 'last_year' | 'all'
+const PERIODS: { key: PeriodKey; label: string }[] = [
+  { key: 'month', label: '本月' },
+  { key: '3m', label: '近 3 個月' },
+  { key: 'year', label: '今年' },
+  { key: 'last_year', label: '去年至今' },
+  { key: 'all', label: '全部' },
+]
+
+/** 期間起始日（台灣日期） */
+function periodStart(k: PeriodKey): string | undefined {
+  const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }))
+  const y = today.getFullYear(), m = today.getMonth()
+  const fmt = (d: Date) => d.toLocaleDateString('sv-SE')
+  switch (k) {
+    case 'month': return fmt(new Date(y, m, 1))
+    case '3m': return fmt(new Date(y, m - 2, 1))
+    case 'year': return fmt(new Date(y, 0, 1))
+    case 'last_year': return fmt(new Date(y - 1, 0, 1))
+    default: return undefined
+  }
 }
