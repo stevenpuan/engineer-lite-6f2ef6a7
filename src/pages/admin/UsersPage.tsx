@@ -109,8 +109,8 @@ export default function UsersPage() {
                           onChange={e => handleRoleChange(u.id, e.target.value)}
                           className="w-32"
                         >
-                          <option value="owner">owner</option>
-                          <option value="assistant">assistant</option>
+                          <option value="owner">老闆</option>
+                          <option value="assistant">助理</option>
                         </Select>
                       </TableCell>
                       <TableCell>
@@ -144,8 +144,8 @@ export default function UsersPage() {
             <div>
               <Label>角色</Label>
               <Select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
-                <option value="owner">owner (完整權限)</option>
-                <option value="assistant">assistant (有限權限)</option>
+                <option value="owner">老闆（完整權限、看得到毛利、可刪除）</option>
+                <option value="assistant">助理（可新增修改，不能刪除、看不到毛利）</option>
               </Select>
             </div>
             <div className="flex justify-end gap-2">

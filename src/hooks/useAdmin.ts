@@ -121,7 +121,15 @@ export function useAdminTenantModules(tenantId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('pa_tenant_modules', { _tenant_id: tenantId! })
       if (error) throw error
-      return data as unknown as TenantModuleItem[]
+      // RPC returns module_name / tier; the page uses label / category
+      return (data ?? []).map(m => ({
+        module_key: m.module_key,
+        label: m.module_name,
+        category: m.tier === 'core' ? 'core' : 'addon',
+        sort_order: m.sort_order,
+        enabled: m.enabled,
+        enabled_at: m.enabled_at,
+      })) as TenantModuleItem[]
     },
   })
 }
