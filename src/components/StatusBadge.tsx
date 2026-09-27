@@ -14,10 +14,15 @@ const statusStyles: Record<string, string> = {
   '取消': 'bg-status-cancelled text-status-cancelled-foreground',
   // 帳款狀態
   '待收': 'bg-status-pending text-status-pending-foreground',
+  '已請款': 'bg-status-active text-status-active-foreground',
+  '部分收款': 'bg-status-pending text-status-pending-foreground',
   '已收': 'bg-status-done text-status-done-foreground',
   '逾期': 'bg-status-cancelled text-status-cancelled-foreground',
   '待付': 'bg-status-pending text-status-pending-foreground',
+  '部分付款': 'bg-status-pending text-status-pending-foreground',
   '已付': 'bg-status-done text-status-done-foreground',
+  '未付': 'bg-status-pending text-status-pending-foreground',
+  '部分': 'bg-status-active text-status-active-foreground',
   // 報價單狀態
   '草稿': 'bg-status-closed text-status-closed-foreground',
   '已送出': 'bg-status-active text-status-active-foreground',

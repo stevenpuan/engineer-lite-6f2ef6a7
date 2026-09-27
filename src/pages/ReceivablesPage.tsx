@@ -10,19 +10,11 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import { Plus, Search, Trash2, HandCoins } from 'lucide-react'
-import { RECEIVABLE_STATUS_LABELS, type ReceivableStatus } from '@/types/database'
+import { RECEIVABLE_STATUS_LABELS } from '@/types/database'
 import { toast } from 'sonner'
-
-const statusStyle: Record<ReceivableStatus, string> = {
-  pending: 'bg-gray-100 text-gray-800',
-  invoiced: 'bg-blue-100 text-blue-800',
-  partial: 'bg-yellow-100 text-yellow-800',
-  paid: 'bg-green-100 text-green-800',
-  overdue: 'bg-red-100 text-red-800',
-  cancelled: 'bg-gray-100 text-gray-500',
-}
+import { StatusBadge } from '@/components/StatusBadge'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 export default function ReceivablesPage() {
   const canDelete = useCanDelete()
