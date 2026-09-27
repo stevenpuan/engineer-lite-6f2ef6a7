@@ -19,9 +19,10 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 const allStatuses: QuoteStatus[] = ['草稿', '已送出', '已接受', '已拒絕', '已過期']
 
-/** 由已存的稅額反推稅率（%），小計為 0 時預設 5% */
+/** 讀取報價單上儲存的稅率（%） */
 function currentTaxRate(q: { subtotal: number; tax: number }): number {
-  return q.subtotal > 0 ? Math.round((Number(q.tax) / Number(q.subtotal)) * 100) : 5
+  const r = (q as { tax_rate?: number | null }).tax_rate
+  return r == null ? 5 : Number(r)
 }
 
 export default function QuoteDetailPage() {
@@ -63,6 +64,9 @@ export default function QuoteDetailPage() {
     if (!id) return
     try {
       const newId = await newVersion.mutateAsync(id)
+      if (quote) {
+        await updateQuote.mutateAsync({ id: newId, tax_rate: currentTaxRate(quote) } as never)
+      }
       toast.success('已建立新版本')
       navigate({ to: '/quotes/$id', params: { id: newId } })
     } catch (err) {
@@ -72,10 +76,9 @@ export default function QuoteDetailPage() {
 
   async function handleTaxRateChange(rate: number) {
     if (!quote) return
-    const subtotal = Number(quote.subtotal)
-    const tax = Math.round(subtotal * (rate / 100))
     try {
-      await updateQuote.mutateAsync({ id, tax, total: subtotal + tax })
+      // 資料庫會依稅率自動重算稅額與總額
+      await updateQuote.mutateAsync({ id, tax_rate: rate } as never)
       toast.success(rate === 0 ? '已改為免稅' : `稅率已改為 ${rate}%`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '更新失敗')
