@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
 import { Plus, Search, Trash2, Image as ImageIcon } from 'lucide-react'
 import { openExpensePhoto } from '@/hooks/useCoreExtras'
-import { EXPENSE_CATEGORY_LABELS, type ExpenseCategory } from '@/types/database'
+import { EXPENSE_CATEGORY_LABELS, type Expense, type ExpenseCategory } from '@/types/database'
 import { toast } from 'sonner'
 
 const categories = Object.entries(EXPENSE_CATEGORY_LABELS) as [ExpenseCategory, string][]
@@ -57,7 +57,7 @@ export default function ExpensesPage() {
   const [search, setSearch] = useState('')
 
   const filtered = expenses.filter(e =>
-    e.description.includes(search) || (e.vendor_name ?? '').includes(search)
+    e.description.includes(search) || (e.vendor_name ?? '').includes(search) || (e.receipt_no ?? '').includes(search.toUpperCase())
   )
 
   const totalAmount = filtered.reduce((s, e) => s + (e.status !== 'cancelled' ? Number(e.amount) : 0), 0)
@@ -134,6 +134,7 @@ export default function ExpensesPage() {
                   <Badge className={statusStyle[e.status] ?? ''} variant="secondary">{statusLabel[e.status] ?? e.status}</Badge>
                   <span>{EXPENSE_CATEGORY_LABELS[e.category] ?? e.category}</span>
                 </div>
+                <ReceiptMeta e={e} />
               </div>
             ))}
           </div>
@@ -163,6 +164,7 @@ export default function ExpensesPage() {
                       <ImageIcon className="h-4 w-4" />
                     </button>
                   )}
+                      <ReceiptMeta e={e} />
                     </TableCell>
                     <TableCell>{EXPENSE_CATEGORY_LABELS[e.category] ?? e.category}</TableCell>
                     <TableCell>{(e.project as { name: string } | null)?.name ?? (e.is_overhead ? '公司支出' : '—')}</TableCell>
@@ -217,6 +219,16 @@ export default function ExpensesPage() {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+/** 廠商／發票號碼（LINE 拍照記帳辨識後會帶入） */
+function ReceiptMeta({ e }: { e: Expense }) {
+  if (!e.vendor_name && !e.receipt_no) return null
+  return (
+    <div className="text-xs text-muted-foreground font-normal">
+      {[e.vendor_name, e.receipt_no && `發票 ${e.receipt_no}`].filter(Boolean).join(' · ')}
     </div>
   )
 }

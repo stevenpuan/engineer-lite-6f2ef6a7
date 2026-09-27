@@ -6,7 +6,9 @@
 //
 // Secrets (Supabase → Edge Functions → Secrets):
 //   LINE_CHANNEL_SECRET, LINE_CHANNEL_ACCESS_TOKEN
+//   ANTHROPIC_API_KEY（選用，module:ai_ocr 讀傳統收據用）
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { recognizeReceipt } from './receipt.ts'
 
 const CHANNEL_SECRET = Deno.env.get('LINE_CHANNEL_SECRET') ?? ''
 const ACCESS_TOKEN = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN') ?? ''
@@ -195,9 +197,9 @@ async function flowPayables(uid: string, token: string) {
 }
 
 // Expense: [photo] → amount → project → category → saved
-async function askAmount(uid: string, token: string, photoPath: string | null) {
-  await rpc('line_pending_set', { _line_user_id: uid, _kind: 'expense_amount', _data: { photo_path: photoPath } })
-  await reply(token, [text(photoPath ? '收到單據照片。\n請輸入金額（例如 1250 或 3.5萬）' : '請輸入金額（例如 1250 或 3.5萬）\n也可以直接傳收據照片。', [
+async function askAmount(uid: string, token: string, photoPath: string | null, lead = '收到單據照片。', keep: Record<string, unknown> = {}) {
+  await rpc('line_pending_set', { _line_user_id: uid, _kind: 'expense_amount', _data: { ...keep, photo_path: photoPath } })
+  await reply(token, [text(photoPath ? `${lead}\n請輸入金額（例如 1250 或 3.5萬）` : '請輸入金額（例如 1250 或 3.5萬）\n也可以直接傳收據照片。', [
     { label: '取消', text: '取消' },
   ])])
 }
@@ -219,21 +221,28 @@ async function askExpenseCategory(uid: string, token: string, data: Record<strin
 }
 
 async function saveExpense(uid: string, token: string, data: Record<string, unknown>, category: string) {
+  const description = [data.vendor_name, data.summary].filter(Boolean).join(' ') || (data.photo_path ? 'LINE 拍照記帳' : 'LINE 記帳')
   await rpc('line_create_expense', {
     _line_user_id: uid,
     _project_id: data.project_id ?? null,
     _amount: data.amount,
     _category: category,
-    _description: data.photo_path ? 'LINE 拍照記帳' : 'LINE 記帳',
+    _description: description,
     _photo_path: data.photo_path ?? null,
+    _expense_date: data.expense_date ?? null,
+    _vendor_name: data.vendor_name ?? null,
+    _receipt_no: data.receipt_no ?? null,
+    _seller_tax_id: data.seller_tax_id ?? null,
+    _ocr: data.ocr ?? null,
   })
   await rpc('line_pending_clear', { _line_user_id: uid })
-  await reply(token, [text(`已記帳 ✓\n${money(data.amount as number)}　${CATEGORY_LABEL[category] ?? category}　${data.project_name ?? '公司支出'}`, [
+  const when = data.expense_date ? `（${String(data.expense_date).slice(5).replace('-', '/')}）` : ''
+  await reply(token, [text(`已記帳 ✓\n${description}${when}\n${money(data.amount as number)}　${CATEGORY_LABEL[category] ?? category}　${data.project_name ?? '公司支出'}`, [
     { label: '再記一筆', text: '拍照記帳' },
   ])])
 }
 
-async function savePhoto(ctx: Ctx, messageId: string): Promise<string> {
+async function savePhoto(ctx: Ctx, messageId: string): Promise<{ path: string; bytes: Uint8Array; type: string }> {
   const res = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
     headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
   })
@@ -242,9 +251,62 @@ async function savePhoto(ctx: Ctx, messageId: string): Promise<string> {
   const ext = type.includes('png') ? 'png' : 'jpg'
   const month = new Date().toISOString().slice(0, 7)
   const path = `${ctx.tenant_id}/${month}/${crypto.randomUUID()}.${ext}`
-  const { error } = await sb.storage.from(PHOTO_BUCKET).upload(path, await res.arrayBuffer(), { contentType: type })
+  const bytes = new Uint8Array(await res.arrayBuffer())
+  const { error } = await sb.storage.from(PHOTO_BUCKET).upload(path, bytes, { contentType: type })
   if (error) throw new Error(error.message)
-  return path
+  return { path, bytes, type }
+}
+
+// ── AI 拍照記帳（module:ai_ocr）──
+// 照片 → 辨識 → 使用者確認（正確／改金額／改類別）→ 選案件 → 寫入
+
+async function flowPhoto(uid: string, token: string, ctx: Ctx, messageId: string) {
+  const photo = await savePhoto(ctx, messageId)
+  if (!(await rpc<boolean>('line_has_module', { _line_user_id: uid, _key: 'ai_ocr' }))) return askAmount(uid, token, photo.path)
+
+  const r = await recognizeReceipt(photo.bytes, photo.type).catch((e) => { console.error('ocr failed', String(e)); return null })
+  if (r === 'not_receipt') return askAmount(uid, token, photo.path, '這張看起來不像單據，照片已先存起來。')
+  if (!r?.amount) return askAmount(uid, token, photo.path, '收到單據照片，但看不清楚金額。')
+
+  const data = {
+    photo_path: photo.path,
+    amount: r.amount,
+    expense_date: r.date,
+    vendor_name: r.vendor,
+    receipt_no: r.receipt_no,
+    seller_tax_id: r.seller_tax_id,
+    summary: r.summary,
+    category: r.category,
+    ocr: r,
+  }
+  const dup = r.receipt_no ? await rpc<{ amount: number; expense_date: string; project: string | null } | null>('line_find_receipt', { _line_user_id: uid, _receipt_no: r.receipt_no }) : null
+  return askOcrConfirm(uid, token, data, dup)
+}
+
+async function askOcrConfirm(
+  uid: string, token: string, data: Record<string, unknown>,
+  dup: { amount: number; expense_date: string; project: string | null } | null = null,
+) {
+  await rpc('line_pending_set', { _line_user_id: uid, _kind: 'expense_confirm', _data: data })
+  const ocr = data.ocr as { source?: string } | undefined
+  const src = ocr?.source?.startsWith('qr') ? '電子發票' : 'AI 辨識'
+  const lines = [`辨識結果（${src}）`]
+  if (data.vendor_name || data.summary) lines.push([data.vendor_name, data.summary].filter(Boolean).join('　'))
+  if (data.expense_date) lines.push(`日期　${data.expense_date}`)
+  lines.push(`金額　${money(data.amount as number)}`)
+  if (data.receipt_no) lines.push(`發票　${data.receipt_no}`)
+  lines.push(`類別　${data.category ? `${CATEGORY_LABEL[data.category as string]}（建議）` : '待選'}`)
+  if (dup) {
+    lines.push('', `⚠ 這張發票已經記過：${money(dup.amount)}，${dup.expense_date}，${dup.project ?? '公司支出'}`)
+    return reply(token, [text(lines.join('\n'), [{ label: '仍要記帳', data: 'a=ocr_ok' }, { label: '取消', text: '取消' }])])
+  }
+  lines.push('', '內容正確嗎？')
+  await reply(token, [text(lines.join('\n'), [
+    { label: '正確', data: 'a=ocr_ok' },
+    { label: '改金額', data: 'a=ocr_amt' },
+    { label: '改類別', data: 'a=ocr_cat' },
+    { label: '取消', text: '取消' },
+  ])])
 }
 
 // ── event router ──
@@ -289,6 +351,22 @@ async function handle(ev: any) {
     if (a === 'proj') return flowStages(uid, token, q.get('p')!)
     if (a === 'stage') return flowPercent(token, q.get('s')!)
     if (a === 'pct') return flowReport(uid, token, q.get('s')!, Number(q.get('v')))
+    if (a === 'ocr_ok' || a === 'ocr_amt' || a === 'ocr_cat' || a === 'ocr_setcat') {
+      const pending = (await rpc<{ kind: string; data: Record<string, unknown> }[]>('line_pending_get', { _line_user_id: uid }))[0]
+      if (pending?.kind !== 'expense_confirm') return reply(token, [text('這筆記帳已逾時，請重新傳照片。')])
+      if (a === 'ocr_ok') return askExpenseProject(uid, token, pending.data)
+      if (a === 'ocr_amt') {
+        const { amount: _old, ...keep } = pending.data
+        return askAmount(uid, token, (keep.photo_path as string) ?? null, `原本辨識 ${money(_old as number)}。`, keep)
+      }
+      if (a === 'ocr_cat') {
+        return reply(token, [text('改成什麼類別？', [
+          ...CATEGORIES.map(([code, label]) => ({ label, data: `a=ocr_setcat&c=${code}` })),
+          { label: '取消', text: '取消' },
+        ])])
+      }
+      return askOcrConfirm(uid, token, { ...pending.data, category: q.get('c') ?? 'other' })
+    }
     if (a === 'exp_proj' || a === 'exp_cat') {
       const pending = (await rpc<{ kind: string; data: Record<string, unknown> }[]>('line_pending_get', { _line_user_id: uid }))[0]
       if (!pending || pending.data.amount === undefined) return reply(token, [text('這筆記帳已逾時，請重新開始。', [{ label: '拍照記帳', text: '拍照記帳' }])])
@@ -299,7 +377,10 @@ async function handle(ev: any) {
           const projects = await rpc<{ id: string; name: string }[]>('line_projects', { _line_user_id: uid })
           projectName = projects.find((x) => x.id === p)?.name ?? null
         }
-        return askExpenseCategory(uid, token, { ...pending.data, project_id: p === 'none' ? null : p, project_name: projectName })
+        const next: Record<string, unknown> = { ...pending.data, project_id: p === 'none' ? null : p, project_name: projectName }
+        // 辨識時已確認過類別就直接寫入
+        if (next.category) return saveExpense(uid, token, next, next.category as string)
+        return askExpenseCategory(uid, token, next)
       }
       return saveExpense(uid, token, pending.data, q.get('c') ?? 'other')
     }
@@ -307,8 +388,7 @@ async function handle(ev: any) {
   }
 
   if (ev.type === 'message' && ev.message.type === 'image') {
-    const path = await savePhoto(ctx, ev.message.id)
-    return askAmount(uid, token, path)
+    return flowPhoto(uid, token, ctx, ev.message.id)
   }
 
   if (ev.type === 'message' && ev.message.type === 'text') {

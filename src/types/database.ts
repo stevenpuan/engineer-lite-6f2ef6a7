@@ -156,6 +156,7 @@ export interface Expense {
   is_overhead: boolean
   notes: string | null
   photo_path: string | null
+  seller_tax_id?: string | null
   created_at: string
   updated_at: string
   project?: Project | null
