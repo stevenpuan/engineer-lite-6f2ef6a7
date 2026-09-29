@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useCanDelete } from '@/hooks/useCanDelete'
 import { useParams, Link, useNavigate } from '@tanstack/react-router'
 import { usePriceBook, useRememberPrice, useQuoteNewVersion } from '@/hooks/useCoreExtras'
-import { useQuote, useQuoteItems, useUpdateQuote, useCreateQuoteItem, useDeleteQuoteItem, useRecalcQuote } from '@/hooks/useQuotes'
+import { useQuote, useQuoteItems, useUpdateQuote, useCreateQuoteItem, useDeleteQuoteItem, useRecalcQuote, useUpdateQuoteItem } from '@/hooks/useQuotes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
-import { ArrowLeft, Check, Copy, Pencil, Plus, Trash2, X } from 'lucide-react'
-import type { QuoteStatus } from '@/types/database'
+import { ArrowLeft, Check, Copy, FileSpreadsheet, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { exportQuoteExcel } from '@/lib/quoteExcel'
+import type { QuoteItem, QuoteStatus } from '@/types/database'
 import { toast } from 'sonner'
 import { StatusBadge } from '@/components/StatusBadge'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -184,13 +185,14 @@ export default function QuoteDetailPage() {
         )}
         <StatusBadge status={quote.status} />
         {(quote.version ?? 1) > 1 && <Badge variant="outline">v{quote.version}</Badge>}
+        <Button variant="outline" size="sm" className="ml-auto" onClick={handleExport}><FileSpreadsheet className="mr-1 h-4 w-4" />匯出 Excel</Button>
         <ConfirmDialog
           title="另存新版本"
           description="會複製目前內容成新版本，舊版本保留，列表只顯示最新版。"
           confirmLabel="建立新版本"
           onConfirm={handleNewVersion}
           trigger={
-            <Button variant="outline" size="sm" className="ml-auto" disabled={newVersion.isPending}>
+            <Button variant="outline" size="sm" disabled={newVersion.isPending}>
               <Copy className="mr-1 h-4 w-4" />另存新版本
             </Button>
           }
@@ -242,7 +244,7 @@ export default function QuoteDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-base">報價明細 ({items.length})</CardTitle>
-          <Button size="sm" onClick={() => setItemDialog(true)}><Plus className="mr-1 h-4 w-4" />新增品項</Button>
+          <Button size="sm" onClick={openNew}><Plus className="mr-1 h-4 w-4" />新增品項</Button>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -258,14 +260,14 @@ export default function QuoteDetailPage() {
             </TableHeader>
             <TableBody>
               {items.map(item => (
-                <TableRow key={item.id}>
+                <TableRow key={item.id} className="cursor-pointer" onClick={() => openEdit(item)}>
                   <TableCell>{item.description}</TableCell>
                   <TableCell>{item.unit ?? '—'}</TableCell>
                   <TableCell className="text-right">{item.quantity}</TableCell>
                   <TableCell className="text-right">${Number(item.unit_price).toLocaleString()}</TableCell>
                   <TableCell className="text-right font-medium">${Number(item.amount).toLocaleString()}</TableCell>
                   <TableCell>
-                    {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)}>
+                    {canDelete && (<Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); handleDeleteItem(item.id) }}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>)}
                   </TableCell>
@@ -283,7 +285,7 @@ export default function QuoteDetailPage() {
       <Dialog open={itemDialog} onOpenChange={setItemDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增報價品項</DialogTitle>
+            <DialogTitle>{editingId ? '修改報價品項' : '新增報價品項'}</DialogTitle>
             <DialogDescription>輸入品項的說明、數量和單價</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
@@ -293,15 +295,16 @@ export default function QuoteDetailPage() {
               </datalist></div>
             <div className="grid grid-cols-3 gap-3">
               <div><Label>單位</Label><Input value={itemForm.unit} onChange={e => setItemForm({ ...itemForm, unit: e.target.value })} placeholder="式/坪/m" /></div>
-              <div><Label>數量</Label><Input type="number" value={itemForm.quantity} onChange={e => setItemForm({ ...itemForm, quantity: e.target.value })} /></div>
-              <div><Label>單價</Label><Input type="number" value={itemForm.unit_price} onChange={e => setItemForm({ ...itemForm, unit_price: e.target.value })} /></div>
+              <div><Label>數量</Label><Input type="number" inputMode="decimal" min="0" value={itemForm.quantity} onChange={e => setItemForm({ ...itemForm, quantity: e.target.value })} /></div>
+              <div><Label>單價</Label><Input type="number" inputMode="numeric" min="0" placeholder="0" value={itemForm.unit_price} onChange={e => setItemForm({ ...itemForm, unit_price: e.target.value })} /></div>
             </div>
             <div className="text-sm text-right text-muted-foreground">
-              金額：${((Number(itemForm.quantity) || 0) * (Number(itemForm.unit_price) || 0)).toLocaleString()}
+              金額：${Math.round((Number(itemForm.quantity) || 0) * (Number(itemForm.unit_price) || 0)).toLocaleString()}
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setItemDialog(false)}>取消</Button>
-              <Button onClick={handleAddItem}>新增</Button>
+              {!editingId && <Button variant="secondary" disabled={saving} onClick={() => handleAddItem(true)}>儲存並新增下一筆</Button>}
+              <Button disabled={saving} onClick={() => handleAddItem()}>{editingId ? '儲存' : '新增'}</Button>
             </div>
           </div>
         </DialogContent>
