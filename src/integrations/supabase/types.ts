@@ -1544,11 +1544,21 @@ export type Database = {
       }
       purge_line_data: { Args: never; Returns: undefined }
       recalc_quote_totals: { Args: { _quote_id: string }; Returns: undefined }
+      receivable_status_for: {
+        Args: {
+          _amount: number
+          _due: string
+          _received: number
+          _status: string
+        }
+        Returns: string
+      }
       rpc_apply_stage_template: {
         Args: { _project_id: string; _template_id: string }
         Returns: number
       }
       rpc_dashboard_month: { Args: never; Returns: Json }
+      rpc_dashboard_totals: { Args: never; Returns: Json }
       rpc_line_issue_code: { Args: { _user_id: string }; Returns: Json }
       rpc_line_members: {
         Args: never
