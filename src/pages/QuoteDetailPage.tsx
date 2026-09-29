@@ -167,7 +167,7 @@ export default function QuoteDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Link to="/quotes"><Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button></Link>
         {titleDraft === null ? (
           <button type="button" className="group flex items-center gap-2 text-left" onClick={() => setTitleDraft(quote.title)} title="改名稱">
