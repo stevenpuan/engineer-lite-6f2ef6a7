@@ -99,6 +99,38 @@ export function useDeleteQuote() {
   })
 }
 
+/** 以既有報價單為範本，複製全部品項，開一張新單號的報價單 */
+export function useDuplicateQuote() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (sourceId: string) => {
+      const { data: src, error: e1 } = await supabase.from('quotes').select('*').eq('id', sourceId).single()
+      if (e1 || !src) throw e1 ?? new Error('找不到報價單')
+      const s = src as unknown as Quote & { tax_rate?: number }
+      const { data: created, error: e2 } = await supabase.from('quotes').insert({
+        project_id: s.project_id,
+        title: `${s.title}（複製）`,
+        notes: s.notes,
+        tax_rate: s.tax_rate ?? 5,
+      } as never).select().single()
+      if (e2 || !created) throw e2 ?? new Error('建立失敗')
+      const newId = (created as Quote).id
+      const { data: items, error: e3 } = await supabase.from('quote_items').select('*').eq('quote_id', sourceId).order('sort_order')
+      if (e3) throw e3
+      if (items && items.length) {
+        const rows = (items as QuoteItem[]).map(i => ({
+          quote_id: newId, description: i.description, unit: i.unit, quantity: i.quantity,
+          unit_price: i.unit_price, amount: i.amount, sort_order: i.sort_order, notes: i.notes,
+        }))
+        const { error: e4 } = await supabase.from('quote_items').insert(rows as never)
+        if (e4) { await supabase.from('quotes').delete().eq('id', newId); throw e4 }
+      }
+      return newId
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['quotes'] }); qc.invalidateQueries({ queryKey: ['quote_items'] }) },
+  })
+}
+
 // ── Quote Items ──
 
 export function useCreateQuoteItem() {

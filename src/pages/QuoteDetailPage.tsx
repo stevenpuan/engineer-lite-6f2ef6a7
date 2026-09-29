@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useCanDelete } from '@/hooks/useCanDelete'
 import { useParams, Link, useNavigate } from '@tanstack/react-router'
 import { usePriceBook, useRememberPrice, useQuoteNewVersion } from '@/hooks/useCoreExtras'
-import { useQuote, useQuoteItems, useUpdateQuote, useCreateQuoteItem, useDeleteQuoteItem, useRecalcQuote, useUpdateQuoteItem } from '@/hooks/useQuotes'
+import { useQuote, useQuoteItems, useUpdateQuote, useCreateQuoteItem, useDeleteQuoteItem, useRecalcQuote, useUpdateQuoteItem, useDuplicateQuote } from '@/hooks/useQuotes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
-import { ArrowLeft, Check, Copy, FileSpreadsheet, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Check, Copy, FileSpreadsheet, Files, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { exportQuoteExcel } from '@/lib/quoteExcel'
 import type { QuoteItem, QuoteStatus } from '@/types/database'
 import { toast } from 'sonner'
@@ -39,6 +39,7 @@ export default function QuoteDetailPage() {
   const { data: priceBook = [] } = usePriceBook()
   const rememberPrice = useRememberPrice()
   const newVersion = useQuoteNewVersion()
+  const duplicate = useDuplicateQuote()
   const [titleDraft, setTitleDraft] = useState<string | null>(null)
 
   async function saveTitle() {
@@ -59,6 +60,17 @@ export default function QuoteDetailPage() {
     setItemForm(f => hit
       ? { ...f, description: value, unit: hit.unit ?? f.unit, unit_price: String(hit.unit_price) }
       : { ...f, description: value })
+  }
+
+  async function handleDuplicate() {
+    if (!id) return
+    try {
+      const newId = await duplicate.mutateAsync(id)
+      toast.success('已複製成新報價單')
+      navigate({ to: '/quotes/$id', params: { id: newId } })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '複製失敗')
+    }
   }
 
   async function handleNewVersion() {
@@ -194,6 +206,17 @@ export default function QuoteDetailPage() {
           trigger={
             <Button variant="outline" size="sm" disabled={newVersion.isPending}>
               <Copy className="mr-1 h-4 w-4" />另存新版本
+            </Button>
+          }
+        />
+        <ConfirmDialog
+          title="複製報價單"
+          description="會用這張報價單當範本，帶著全部品項開一張新單號的報價單（狀態為草稿）。原報價單不受影響。"
+          confirmLabel="複製"
+          onConfirm={handleDuplicate}
+          trigger={
+            <Button variant="outline" size="sm" disabled={duplicate.isPending}>
+              <Files className="mr-1 h-4 w-4" />複製報價單
             </Button>
           }
         />
