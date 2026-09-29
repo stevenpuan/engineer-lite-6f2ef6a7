@@ -86,7 +86,21 @@ export default function QuoteDetailPage() {
   }
 
   const [itemDialog, setItemDialog] = useState(false)
-  const [itemForm, setItemForm] = useState({ description: '', unit: '', quantity: '1', unit_price: '0' })
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [itemForm, setItemForm] = useState({ description: '', unit: '', quantity: '1', unit_price: '' })
+  const updateItem = useUpdateQuoteItem()
+  const saving = createItem.isPending || updateItem.isPending
+
+  function openNew() {
+    setEditingId(null)
+    setItemForm({ description: '', unit: '', quantity: '1', unit_price: '' })
+    setItemDialog(true)
+  }
+  function openEdit(it: QuoteItem) {
+    setEditingId(it.id)
+    setItemForm({ description: it.description, unit: it.unit ?? '', quantity: String(it.quantity), unit_price: String(it.unit_price) })
+    setItemDialog(true)
+  }
 
   async function handleStatusChange(status: QuoteStatus) {
     if (!id) return
@@ -98,28 +112,41 @@ export default function QuoteDetailPage() {
     }
   }
 
-  async function handleAddItem() {
+  async function handleAddItem(keepOpen = false) {
     if (!id) return
     if (!itemForm.description.trim()) { toast.error('請輸入品項說明'); return }
-    const qty = Number(itemForm.quantity) || 1
-    const price = Number(itemForm.unit_price) || 0
+    const qty = Number(itemForm.quantity)
+    const price = Number(itemForm.unit_price)
+    if (!(qty > 0)) { toast.error('數量要大於 0'); return }
+    if (!(price >= 0) || itemForm.unit_price === '') { toast.error('請輸入單價'); return }
+    const payload = {
+      description: itemForm.description.trim(),
+      unit: itemForm.unit.trim() || null,
+      quantity: qty,
+      unit_price: price,
+    }
     try {
-      await createItem.mutateAsync({
-        quote_id: id,
-        description: itemForm.description,
-        unit: itemForm.unit || undefined,
-        quantity: qty,
-        unit_price: price,
-        amount: qty * price,
-        sort_order: items.length,
-      })
+      if (editingId) {
+        await updateItem.mutateAsync({ id: editingId, ...payload } as never)
+      } else {
+        await createItem.mutateAsync({ quote_id: id, ...payload, unit: payload.unit ?? undefined, sort_order: items.length })
+      }
       await recalc.mutateAsync(id)
-      rememberPrice.mutate({ name: itemForm.description.trim(), unit: itemForm.unit || null, unit_price: price })
-      toast.success('明細已新增')
-      setItemDialog(false)
-      setItemForm({ description: '', unit: '', quantity: '1', unit_price: '0' })
+      rememberPrice.mutate({ name: payload.description, unit: payload.unit, unit_price: price })
+      toast.success(editingId ? '品項已更新' : '明細已新增')
+      setItemForm({ description: '', unit: '', quantity: '1', unit_price: '' })
+      if (!keepOpen || editingId) { setItemDialog(false); setEditingId(null) }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '新增失敗')
+      toast.error(err instanceof Error ? err.message : '儲存失敗')
+    }
+  }
+
+  async function handleExport() {
+    if (!quote) return
+    try {
+      await exportQuoteExcel(quote, items, currentTaxRate(quote))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '匯出失敗')
     }
   }
 
