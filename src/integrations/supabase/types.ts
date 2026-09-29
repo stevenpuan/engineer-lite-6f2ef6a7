@@ -1543,6 +1543,7 @@ export type Database = {
         Returns: undefined
       }
       purge_line_data: { Args: never; Returns: undefined }
+      purge_old_logs: { Args: never; Returns: undefined }
       recalc_quote_totals: { Args: { _quote_id: string }; Returns: undefined }
       receivable_status_for: {
         Args: {
