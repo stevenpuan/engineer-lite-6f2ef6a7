@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useCanDelete } from '@/hooks/useCanDelete'
 import { useParams, Link, useNavigate } from '@tanstack/react-router'
 import { usePriceBook, useRememberPrice, useQuoteNewVersion } from '@/hooks/useCoreExtras'
-import { useQuote, useQuoteItems, useUpdateQuote, useCreateQuoteItem, useDeleteQuoteItem, useRecalcQuote } from '@/hooks/useQuotes'
+import { useQuote, useQuoteItems, useUpdateQuote, useCreateQuoteItem, useDeleteQuoteItem, useRecalcQuote, useUpdateQuoteItem } from '@/hooks/useQuotes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
-import { ArrowLeft, Check, Copy, Pencil, Plus, Trash2, X } from 'lucide-react'
-import type { QuoteStatus } from '@/types/database'
+import { ArrowLeft, Check, Copy, FileSpreadsheet, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { exportQuoteExcel } from '@/lib/quoteExcel'
+import type { QuoteItem, QuoteStatus } from '@/types/database'
 import { toast } from 'sonner'
 import { StatusBadge } from '@/components/StatusBadge'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -86,7 +87,21 @@ export default function QuoteDetailPage() {
   }
 
   const [itemDialog, setItemDialog] = useState(false)
-  const [itemForm, setItemForm] = useState({ description: '', unit: '', quantity: '1', unit_price: '0' })
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [itemForm, setItemForm] = useState({ description: '', unit: '', quantity: '1', unit_price: '' })
+  const updateItem = useUpdateQuoteItem()
+  const saving = createItem.isPending || updateItem.isPending
+
+  function openNew() {
+    setEditingId(null)
+    setItemForm({ description: '', unit: '', quantity: '1', unit_price: '' })
+    setItemDialog(true)
+  }
+  function openEdit(it: QuoteItem) {
+    setEditingId(it.id)
+    setItemForm({ description: it.description, unit: it.unit ?? '', quantity: String(it.quantity), unit_price: String(it.unit_price) })
+    setItemDialog(true)
+  }
 
   async function handleStatusChange(status: QuoteStatus) {
     if (!id) return
@@ -98,28 +113,41 @@ export default function QuoteDetailPage() {
     }
   }
 
-  async function handleAddItem() {
+  async function handleAddItem(keepOpen = false) {
     if (!id) return
     if (!itemForm.description.trim()) { toast.error('請輸入品項說明'); return }
-    const qty = Number(itemForm.quantity) || 1
-    const price = Number(itemForm.unit_price) || 0
+    const qty = Number(itemForm.quantity)
+    const price = Number(itemForm.unit_price)
+    if (!(qty > 0)) { toast.error('數量要大於 0'); return }
+    if (!(price >= 0) || itemForm.unit_price === '') { toast.error('請輸入單價'); return }
+    const payload = {
+      description: itemForm.description.trim(),
+      unit: itemForm.unit.trim() || null,
+      quantity: qty,
+      unit_price: price,
+    }
     try {
-      await createItem.mutateAsync({
-        quote_id: id,
-        description: itemForm.description,
-        unit: itemForm.unit || undefined,
-        quantity: qty,
-        unit_price: price,
-        amount: qty * price,
-        sort_order: items.length,
-      })
+      if (editingId) {
+        await updateItem.mutateAsync({ id: editingId, ...payload } as never)
+      } else {
+        await createItem.mutateAsync({ quote_id: id, ...payload, unit: payload.unit ?? undefined, sort_order: items.length })
+      }
       await recalc.mutateAsync(id)
-      rememberPrice.mutate({ name: itemForm.description.trim(), unit: itemForm.unit || null, unit_price: price })
-      toast.success('明細已新增')
-      setItemDialog(false)
-      setItemForm({ description: '', unit: '', quantity: '1', unit_price: '0' })
+      rememberPrice.mutate({ name: payload.description, unit: payload.unit, unit_price: price })
+      toast.success(editingId ? '品項已更新' : '明細已新增')
+      setItemForm({ description: '', unit: '', quantity: '1', unit_price: '' })
+      if (!keepOpen || editingId) { setItemDialog(false); setEditingId(null) }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '新增失敗')
+      toast.error(err instanceof Error ? err.message : '儲存失敗')
+    }
+  }
+
+  async function handleExport() {
+    if (!quote) return
+    try {
+      await exportQuoteExcel(quote, items, currentTaxRate(quote))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '匯出失敗')
     }
   }
 
@@ -139,7 +167,7 @@ export default function QuoteDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Link to="/quotes"><Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button></Link>
         {titleDraft === null ? (
           <button type="button" className="group flex items-center gap-2 text-left" onClick={() => setTitleDraft(quote.title)} title="改名稱">
@@ -157,13 +185,14 @@ export default function QuoteDetailPage() {
         )}
         <StatusBadge status={quote.status} />
         {(quote.version ?? 1) > 1 && <Badge variant="outline">v{quote.version}</Badge>}
+        <Button variant="outline" size="sm" className="ml-auto" onClick={handleExport}><FileSpreadsheet className="mr-1 h-4 w-4" />匯出 Excel</Button>
         <ConfirmDialog
           title="另存新版本"
           description="會複製目前內容成新版本，舊版本保留，列表只顯示最新版。"
           confirmLabel="建立新版本"
           onConfirm={handleNewVersion}
           trigger={
-            <Button variant="outline" size="sm" className="ml-auto" disabled={newVersion.isPending}>
+            <Button variant="outline" size="sm" disabled={newVersion.isPending}>
               <Copy className="mr-1 h-4 w-4" />另存新版本
             </Button>
           }
@@ -215,7 +244,7 @@ export default function QuoteDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-base">報價明細 ({items.length})</CardTitle>
-          <Button size="sm" onClick={() => setItemDialog(true)}><Plus className="mr-1 h-4 w-4" />新增品項</Button>
+          <Button size="sm" onClick={openNew}><Plus className="mr-1 h-4 w-4" />新增品項</Button>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -231,14 +260,14 @@ export default function QuoteDetailPage() {
             </TableHeader>
             <TableBody>
               {items.map(item => (
-                <TableRow key={item.id}>
+                <TableRow key={item.id} className="cursor-pointer" onClick={() => openEdit(item)}>
                   <TableCell>{item.description}</TableCell>
                   <TableCell>{item.unit ?? '—'}</TableCell>
                   <TableCell className="text-right">{item.quantity}</TableCell>
                   <TableCell className="text-right">${Number(item.unit_price).toLocaleString()}</TableCell>
                   <TableCell className="text-right font-medium">${Number(item.amount).toLocaleString()}</TableCell>
                   <TableCell>
-                    {canDelete && (<Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)}>
+                    {canDelete && (<Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); handleDeleteItem(item.id) }}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>)}
                   </TableCell>
@@ -256,7 +285,7 @@ export default function QuoteDetailPage() {
       <Dialog open={itemDialog} onOpenChange={setItemDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增報價品項</DialogTitle>
+            <DialogTitle>{editingId ? '修改報價品項' : '新增報價品項'}</DialogTitle>
             <DialogDescription>輸入品項的說明、數量和單價</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
@@ -266,15 +295,16 @@ export default function QuoteDetailPage() {
               </datalist></div>
             <div className="grid grid-cols-3 gap-3">
               <div><Label>單位</Label><Input value={itemForm.unit} onChange={e => setItemForm({ ...itemForm, unit: e.target.value })} placeholder="式/坪/m" /></div>
-              <div><Label>數量</Label><Input type="number" value={itemForm.quantity} onChange={e => setItemForm({ ...itemForm, quantity: e.target.value })} /></div>
-              <div><Label>單價</Label><Input type="number" value={itemForm.unit_price} onChange={e => setItemForm({ ...itemForm, unit_price: e.target.value })} /></div>
+              <div><Label>數量</Label><Input type="number" inputMode="decimal" min="0" value={itemForm.quantity} onChange={e => setItemForm({ ...itemForm, quantity: e.target.value })} /></div>
+              <div><Label>單價</Label><Input type="number" inputMode="numeric" min="0" placeholder="0" value={itemForm.unit_price} onChange={e => setItemForm({ ...itemForm, unit_price: e.target.value })} /></div>
             </div>
             <div className="text-sm text-right text-muted-foreground">
-              金額：${((Number(itemForm.quantity) || 0) * (Number(itemForm.unit_price) || 0)).toLocaleString()}
+              金額：${Math.round((Number(itemForm.quantity) || 0) * (Number(itemForm.unit_price) || 0)).toLocaleString()}
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setItemDialog(false)}>取消</Button>
-              <Button onClick={handleAddItem}>新增</Button>
+              {!editingId && <Button variant="secondary" disabled={saving} onClick={() => handleAddItem(true)}>儲存並新增下一筆</Button>}
+              <Button disabled={saving} onClick={() => handleAddItem()}>{editingId ? '儲存' : '新增'}</Button>
             </div>
           </div>
         </DialogContent>
