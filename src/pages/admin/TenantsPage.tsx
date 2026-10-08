@@ -1,3 +1,5 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { supabase } from '@/integrations/supabase/client'
 import { useState } from 'react'
 import { useAdminTenants, useCreateTenant, useUpdateTenant } from '@/hooks/useAdmin'
 import { Button } from '@/components/ui/button'
@@ -26,6 +28,7 @@ export default function TenantsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState({ name: '', display_name: '', tax_id: '', industry: '', status: 'active', notes: '' })
+  const [maxUsers, setMaxUsers] = useState('')
 
   function openCreate() {
     setEditId(null)
@@ -43,6 +46,11 @@ export default function TenantsPage() {
       status: t.status,
       notes: t.notes ?? '',
     })
+    setMaxUsers('')
+    supabase.from('tenants').select('max_users').eq('id', t.id).single().then(({ data }) => {
+      const v = (data as { max_users?: number | null } | null)?.max_users
+      setMaxUsers(v ? String(v) : '')
+    })
     setDialogOpen(true)
   }
 
@@ -59,6 +67,9 @@ export default function TenantsPage() {
           _status: form.status,
           _notes: form.notes || undefined,
         })
+        const n = parseInt(maxUsers, 10)
+        const { error } = await (supabase as unknown as SupabaseClient).rpc('pa_set_max_users', { _tenant_id: editId, _max: Number.isFinite(n) && n > 0 ? n : null })
+        if (error) throw error
         toast.success('租戶已更新')
       } else {
         await createTenant.mutateAsync({
@@ -142,6 +153,9 @@ export default function TenantsPage() {
                   <option value="cancelled">cancelled</option>
                 </Select>
               </div>
+            )}
+            {editId && (
+              <div><Label>帳號上限（空白＝不限）</Label><Input type="number" inputMode="numeric" min={1} value={maxUsers} onChange={e => setMaxUsers(e.target.value)} /></div>
             )}
             <div><Label>備註</Label><Input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
             <div className="flex justify-end gap-2">

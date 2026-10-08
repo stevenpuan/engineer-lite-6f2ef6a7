@@ -1222,6 +1222,7 @@ export type Database = {
           display_name: string | null
           id: string
           industry: string
+          max_users: number | null
           name: string
           notes: string | null
           status: string
@@ -1233,6 +1234,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           industry?: string
+          max_users?: number | null
           name: string
           notes?: string | null
           status?: string
@@ -1244,6 +1246,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           industry?: string
+          max_users?: number | null
           name?: string
           notes?: string | null
           status?: string
@@ -1343,6 +1346,8 @@ export type Database = {
         }[]
       }
       _line_unbind: { Args: { _uid: string }; Returns: undefined }
+      _team_check_limit: { Args: { _t: string }; Returns: undefined }
+      _team_guard: { Args: { _uid: string }; Returns: string }
       current_tenant_id: { Args: never; Returns: string }
       has_module: { Args: { _key: string }; Returns: boolean }
       is_platform_admin: { Args: { _uid?: string }; Returns: boolean }
@@ -1479,6 +1484,10 @@ export type Database = {
         }[]
       }
       pa_line_unbind: { Args: { _user_id: string }; Returns: undefined }
+      pa_set_max_users: {
+        Args: { _max: number; _tenant_id: string }
+        Returns: undefined
+      }
       pa_tenant_list: {
         Args: never
         Returns: {
@@ -1612,6 +1621,28 @@ export type Database = {
       }
       rpc_tax_import_expenses: { Args: never; Returns: number }
       rpc_tax_summary: { Args: { _year: number }; Returns: Json }
+      rpc_team_create_user: {
+        Args: {
+          _display_name?: string
+          _email: string
+          _password: string
+          _role?: string
+        }
+        Returns: string
+      }
+      rpc_team_info: { Args: never; Returns: Json }
+      rpc_team_reset_password: {
+        Args: { _password: string; _user_id: string }
+        Returns: undefined
+      }
+      rpc_team_set_active: {
+        Args: { _active: boolean; _user_id: string }
+        Returns: undefined
+      }
+      rpc_team_set_role: {
+        Args: { _role: string; _user_id: string }
+        Returns: undefined
+      }
       seed_stage_templates: { Args: { _tenant_id: string }; Returns: undefined }
       tax_default_deductible: {
         Args: { _buyer_tax_id: string; _category: string; _tenant: string }
