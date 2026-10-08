@@ -273,7 +273,7 @@ export default function ExpensesPage() {
                 <Select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
                   {categoryOptions.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
                   {!categoryOptions.some(o => o.key === form.category) && form.category && (
-                    <option value={form.category}>{EXPENSE_CATEGORY_LABELS[form.category] ?? form.category}（已停用）</option>
+                    <option value={form.category}>{(EXPENSE_CATEGORY_LABELS as Record<string, string>)[form.category] ?? form.category}（已停用）</option>
                   )}
                 </Select>
               </div>
