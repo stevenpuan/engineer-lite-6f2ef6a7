@@ -13,12 +13,13 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Select } from '@/components/ui/select'
 import { Plus, Search, Trash2, Pencil, Image as ImageIcon } from 'lucide-react'
 import { openExpensePhoto } from '@/hooks/useCoreExtras'
-import { EXPENSE_CATEGORY_LABELS, type Expense, type ExpenseCategory } from '@/types/database'
+import { EXPENSE_CATEGORY_LABELS, type Expense } from '@/types/database'
 import { toast } from 'sonner'
 import { StatusBadge } from '@/components/StatusBadge'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
-
-const categories = Object.entries(EXPENSE_CATEGORY_LABELS) as [ExpenseCategory, string][]
+import { ExpenseCategorySettings } from '@/components/ExpenseCategorySettings'
+import { useActiveCategoryOptions } from '@/hooks/useExpenseCategories'
+import { Settings2 } from 'lucide-react'
 
 const statusLabel: Record<string, string> = {
   unpaid: '未付',
@@ -60,6 +61,8 @@ export default function ExpensesPage() {
   const deleteExpense = useDeleteExpense()
 
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [catSettingsOpen, setCatSettingsOpen] = useState(false)
+  const { options: categoryOptions } = useActiveCategoryOptions()
   const [form, setForm] = useState(emptyForm)
   const [search, setSearch] = useState('')
 
@@ -140,7 +143,10 @@ export default function ExpensesPage() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">雜支支出</h1>
-        <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />新增支出</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setCatSettingsOpen(true)}><Settings2 className="mr-2 h-4 w-4" />類別設定</Button>
+          <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />新增支出</Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -265,7 +271,10 @@ export default function ExpensesPage() {
               <div>
                 <Label>分類</Label>
                 <Select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                  {categories.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  {categoryOptions.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+                  {!categoryOptions.some(o => o.key === form.category) && form.category && (
+                    <option value={form.category}>{(EXPENSE_CATEGORY_LABELS as Record<string, string>)[form.category] ?? form.category}（已停用）</option>
+                  )}
                 </Select>
               </div>
             </div>
@@ -288,6 +297,8 @@ export default function ExpensesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ExpenseCategorySettings open={catSettingsOpen} onOpenChange={setCatSettingsOpen} />
     </div>
   )
 }
