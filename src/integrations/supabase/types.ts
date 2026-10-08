@@ -802,6 +802,8 @@ export type Database = {
           created_at: string
           id: string
           is_latest: boolean
+          mgmt_fee: number
+          mgmt_rate: number
           notes: string | null
           parent_quote_id: string | null
           project_id: string
@@ -822,6 +824,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_latest?: boolean
+          mgmt_fee?: number
+          mgmt_rate?: number
           notes?: string | null
           parent_quote_id?: string | null
           project_id: string
@@ -842,6 +846,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_latest?: boolean
+          mgmt_fee?: number
+          mgmt_rate?: number
           notes?: string | null
           parent_quote_id?: string | null
           project_id?: string
