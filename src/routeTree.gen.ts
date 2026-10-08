@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as PayablesRouteImport } from './routes/payables'
 import { Route as ReceivablesRouteImport } from './routes/receivables'
 import { Route as StageTemplatesRouteImport } from './routes/stage-templates'
+import { Route as TeamRouteImport } from './routes/team'
 import { Route as AdminModulesRouteImport } from './routes/admin.modules'
 import { Route as AdminTenantsRouteImport } from './routes/admin.tenants'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
@@ -71,6 +72,11 @@ const StageTemplatesRoute = StageTemplatesRouteImport.update({
   path: '/stage-templates',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TeamRoute = TeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminModulesRoute = AdminModulesRouteImport.update({
   id: '/admin/modules',
   path: '/admin/modules',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/payables': typeof PayablesRoute
   '/receivables': typeof ReceivablesRoute
   '/stage-templates': typeof StageTemplatesRoute
+  '/team': typeof TeamRoute
   '/admin/modules': typeof AdminModulesRoute
   '/admin/tenants': typeof AdminTenantsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/payables': typeof PayablesRoute
   '/receivables': typeof ReceivablesRoute
   '/stage-templates': typeof StageTemplatesRoute
+  '/team': typeof TeamRoute
   '/admin/modules': typeof AdminModulesRoute
   '/admin/tenants': typeof AdminTenantsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/payables': typeof PayablesRoute
   '/receivables': typeof ReceivablesRoute
   '/stage-templates': typeof StageTemplatesRoute
+  '/team': typeof TeamRoute
   '/admin/modules': typeof AdminModulesRoute
   '/admin/tenants': typeof AdminTenantsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/payables'
     | '/receivables'
     | '/stage-templates'
+    | '/team'
     | '/admin/modules'
     | '/admin/tenants'
     | '/admin/users'
@@ -192,6 +202,7 @@ export interface FileRouteTypes {
     | '/payables'
     | '/receivables'
     | '/stage-templates'
+    | '/team'
     | '/admin/modules'
     | '/admin/tenants'
     | '/admin/users'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '/payables'
     | '/receivables'
     | '/stage-templates'
+    | '/team'
     | '/admin/modules'
     | '/admin/tenants'
     | '/admin/users'
@@ -229,6 +241,7 @@ export interface RootRouteChildren {
   PayablesRoute: typeof PayablesRoute
   ReceivablesRoute: typeof ReceivablesRoute
   StageTemplatesRoute: typeof StageTemplatesRoute
+  TeamRoute: typeof TeamRoute
   AdminModulesRoute: typeof AdminModulesRoute
   AdminTenantsRoute: typeof AdminTenantsRoute
   AdminUsersRoute: typeof AdminUsersRoute
@@ -303,6 +316,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StageTemplatesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/team': {
+      id: '/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof TeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/modules': {
       id: '/admin/modules'
       path: '/admin/modules'
@@ -365,6 +385,7 @@ const rootRouteChildren: RootRouteChildren = {
   PayablesRoute: PayablesRoute,
   ReceivablesRoute: ReceivablesRoute,
   StageTemplatesRoute: StageTemplatesRoute,
+  TeamRoute: TeamRoute,
   AdminModulesRoute: AdminModulesRoute,
   AdminTenantsRoute: AdminTenantsRoute,
   AdminUsersRoute: AdminUsersRoute,
