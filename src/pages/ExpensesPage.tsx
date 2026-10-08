@@ -297,6 +297,8 @@ export default function ExpensesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ExpenseCategorySettings open={catSettingsOpen} onOpenChange={setCatSettingsOpen} />
     </div>
   )
 }
