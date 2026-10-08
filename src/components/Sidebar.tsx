@@ -6,7 +6,7 @@ import { useModules, type ModuleKey } from '@/contexts/ModuleContext'
 import {
   LayoutDashboard, Users, FolderKanban, LogOut, Menu, X,
   Shield, Building2, UserCog, ToggleLeft,
-  FileText, Wallet, Receipt, CreditCard, ListChecks, MessageCircle, Landmark,
+  FileText, Wallet, Receipt, CreditCard, ListChecks, MessageCircle, Landmark, UserCheck,
 } from 'lucide-react'
 
 interface NavItem {
@@ -44,6 +44,7 @@ export function Sidebar() {
 
   // A platform admin who also belongs to a tenant sees both sections
   const hasTenant = !!profile?.tenant_id
+  if (profile?.role === 'owner') tenantNav.push({ label: '帳號管理', to: '/team', icon: <UserCheck className="h-5 w-5" /> })
   const visibleTenantNav = tenantNav.filter(item => !item.module || hasModule(item.module))
 
   function NavLink({ item }: { item: NavItem }) {
