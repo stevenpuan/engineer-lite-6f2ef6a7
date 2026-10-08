@@ -21,6 +21,13 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 const allStatuses: QuoteStatus[] = ['草稿', '已送出', '已接受', '已拒絕', '已過期']
 
 /** 讀取報價單上儲存的稅率（%） */
+function mgmtRateOf(q: object): number {
+  return Number((q as { mgmt_rate?: number | null }).mgmt_rate ?? 0)
+}
+function mgmtFeeOf(q: object): number {
+  return Number((q as { mgmt_fee?: number | null }).mgmt_fee ?? 0)
+}
+
 function currentTaxRate(q: { subtotal: number; tax: number }): number {
   const r = (q as { tax_rate?: number | null }).tax_rate
   return r == null ? 5 : Number(r)
@@ -78,12 +85,25 @@ export default function QuoteDetailPage() {
     try {
       const newId = await newVersion.mutateAsync(id)
       if (quote) {
-        await updateQuote.mutateAsync({ id: newId, tax_rate: currentTaxRate(quote) } as never)
+        await updateQuote.mutateAsync({ id: newId, tax_rate: currentTaxRate(quote), mgmt_rate: mgmtRateOf(quote) } as never)
       }
       toast.success('已建立新版本')
       navigate({ to: '/quotes/$id', params: { id: newId } })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '建立新版本失敗')
+    }
+  }
+
+  async function handleMgmtRateChange(raw: string) {
+    if (!quote) return
+    const rate = raw.trim() === '' ? 0 : Number(raw)
+    if (!Number.isFinite(rate) || rate < 0 || rate > 100) { toast.error('管理費 % 請輸入 0 到 100'); return }
+    if (rate === mgmtRateOf(quote)) return
+    try {
+      await updateQuote.mutateAsync({ id, mgmt_rate: rate } as never)
+      toast.success(rate === 0 ? '已取消管理費' : `管理費已改為 ${rate}%`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '更新失敗')
     }
   }
 
@@ -157,7 +177,7 @@ export default function QuoteDetailPage() {
   async function handleExport() {
     if (!quote) return
     try {
-      await exportQuoteExcel(quote, items, currentTaxRate(quote))
+      await exportQuoteExcel(quote, items, currentTaxRate(quote), mgmtRateOf(quote))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '匯出失敗')
     }
@@ -240,6 +260,24 @@ export default function QuoteDetailPage() {
           <CardHeader><CardTitle className="text-base">金額 & 狀態</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">小計</span><span>${quote.subtotal.toLocaleString()}</span></div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">管理費</span>
+              <div className="flex items-center gap-1">
+                <input
+                  key={`mgmt-${mgmtRateOf(quote)}`}
+                  type="number" inputMode="decimal" min={0} max={100} step="0.1"
+                  defaultValue={mgmtRateOf(quote) || ''}
+                  placeholder="0"
+                  onBlur={e => handleMgmtRateChange(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                  className="h-8 w-20 rounded-md border border-input bg-background px-2 text-right text-sm"
+                />
+                <span className="text-muted-foreground">%</span>
+              </div>
+            </div>
+            {mgmtFeeOf(quote) > 0 && (
+              <div className="flex justify-between"><span className="text-muted-foreground">管理費金額</span><span>${mgmtFeeOf(quote).toLocaleString()}</span></div>
+            )}
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">稅率</span>
               <Select

@@ -1,7 +1,7 @@
 import type { Quote, QuoteItem } from '@/types/database'
 
 /** 產生報價單 Excel（金額用公式，客戶改數量會自動重算） */
-export async function exportQuoteExcel(quote: Quote, items: QuoteItem[], taxRate: number) {
+export async function exportQuoteExcel(quote: Quote, items: QuoteItem[], taxRate: number, mgmtRate = 0) {
   const ExcelJS = (await import('exceljs')).default
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('報價單')
@@ -55,21 +55,24 @@ export async function exportQuoteExcel(quote: Quote, items: QuoteItem[], taxRate
     ws.getCell(n, 6).numFmt = money
   }
   const s = last + 2
-  const rows: [string, { formula: string; result: number } | number][] = [
-    ['小計', { formula: `SUM(F${first}:F${last})`, result: Number(quote.subtotal) }],
-    ['稅率', taxRate / 100],
-    [taxRate === 0 ? '稅額（免稅）' : '稅額', { formula: `ROUND(F${s}*F${s + 1},0)`, result: Number(quote.tax) }],
-    ['合計', { formula: `F${s}+F${s + 2}`, result: Number(quote.total) }],
+  const q = quote as Quote & { mgmt_fee?: number }
+  const rows: [string, { formula: string; result: number } | number, string][] = [
+    ['小計', { formula: `SUM(F${first}:F${last})`, result: Number(quote.subtotal) }, money],
+    ['管理費率', mgmtRate / 100, '0.##%'],
+    ['管理費', { formula: `ROUND(F${s}*F${s + 1},0)`, result: Number(q.mgmt_fee ?? 0) }, money],
+    ['稅率', taxRate / 100, '0%'],
+    [taxRate === 0 ? '稅額（免稅）' : '稅額', { formula: `ROUND((F${s}+F${s + 2})*F${s + 3},0)`, result: Number(quote.tax) }, money],
+    ['合計', { formula: `F${s}+F${s + 2}+F${s + 4}`, result: Number(quote.total) }, money],
   ]
-  rows.forEach(([k, v], i) => {
+  rows.forEach(([k, v, fmt], i) => {
     const r = ws.getRow(s + i)
     r.getCell(5).value = k
     r.getCell(6).value = v
-    r.getCell(6).numFmt = i === 1 ? '0%' : money
-    r.font = { ...font, bold: i === 3 }
+    r.getCell(6).numFmt = fmt
+    r.font = { ...font, bold: i === rows.length - 1 }
   })
   if (quote.notes) {
-    const n = s + 5
+    const n = s + 7
     ws.getCell(n, 1).value = '備註'
     ws.mergeCells(n, 2, n, 6)
     ws.getCell(n, 2).value = quote.notes

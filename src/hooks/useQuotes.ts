@@ -106,12 +106,13 @@ export function useDuplicateQuote() {
     mutationFn: async (sourceId: string) => {
       const { data: src, error: e1 } = await supabase.from('quotes').select('*').eq('id', sourceId).single()
       if (e1 || !src) throw e1 ?? new Error('找不到報價單')
-      const s = src as unknown as Quote & { tax_rate?: number }
+      const s = src as unknown as Quote & { tax_rate?: number; mgmt_rate?: number }
       const { data: created, error: e2 } = await supabase.from('quotes').insert({
         project_id: s.project_id,
         title: `${s.title}（複製）`,
         notes: s.notes,
         tax_rate: s.tax_rate ?? 5,
+        mgmt_rate: s.mgmt_rate ?? 0,
       } as never).select().single()
       if (e2 || !created) throw e2 ?? new Error('建立失敗')
       const newId = (created as Quote).id
