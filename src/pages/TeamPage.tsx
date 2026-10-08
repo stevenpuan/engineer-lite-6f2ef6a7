@@ -39,8 +39,8 @@ export default function TeamPage() {
   }
 
   async function handleCreate() {
-    if (!form.email.trim()) return toast.error('請輸入 Email')
-    if (form.password.length < 8) return toast.error('密碼至少要 8 個字')
+    if (!form.email.trim()) { toast.error('請輸入 Email'); return }
+    if (form.password.length < 8) { toast.error('密碼至少要 8 個字'); return }
     const ok = await run(create.mutateAsync({
       _email: form.email.trim(), _password: form.password, _display_name: form.display_name.trim() || null, _role: form.role,
     }), '帳號已建立，請把 Email 和密碼交給對方登入')
@@ -49,7 +49,7 @@ export default function TeamPage() {
 
   async function handleResetPw() {
     if (!pwUser) return
-    if (newPw.length < 8) return toast.error('密碼至少要 8 個字')
+    if (newPw.length < 8) { toast.error('密碼至少要 8 個字'); return }
     const ok = await run(resetPw.mutateAsync({ _user_id: pwUser.user_id, _password: newPw }), '密碼已重設')
     if (ok) { setPwUser(null); setNewPw('') }
   }
