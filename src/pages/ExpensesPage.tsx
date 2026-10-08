@@ -13,12 +13,13 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Select } from '@/components/ui/select'
 import { Plus, Search, Trash2, Pencil, Image as ImageIcon } from 'lucide-react'
 import { openExpensePhoto } from '@/hooks/useCoreExtras'
-import { EXPENSE_CATEGORY_LABELS, type Expense, type ExpenseCategory } from '@/types/database'
+import { EXPENSE_CATEGORY_LABELS, type Expense } from '@/types/database'
 import { toast } from 'sonner'
 import { StatusBadge } from '@/components/StatusBadge'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
-
-const categories = Object.entries(EXPENSE_CATEGORY_LABELS) as [ExpenseCategory, string][]
+import { ExpenseCategorySettings } from '@/components/ExpenseCategorySettings'
+import { useActiveCategoryOptions } from '@/hooks/useExpenseCategories'
+import { Settings2 } from 'lucide-react'
 
 const statusLabel: Record<string, string> = {
   unpaid: '未付',
