@@ -61,6 +61,8 @@ export default function ExpensesPage() {
   const deleteExpense = useDeleteExpense()
 
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [catSettingsOpen, setCatSettingsOpen] = useState(false)
+  const { options: categoryOptions } = useActiveCategoryOptions()
   const [form, setForm] = useState(emptyForm)
   const [search, setSearch] = useState('')
 
@@ -141,7 +143,10 @@ export default function ExpensesPage() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">雜支支出</h1>
-        <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />新增支出</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setCatSettingsOpen(true)}><Settings2 className="mr-2 h-4 w-4" />類別設定</Button>
+          <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />新增支出</Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -266,7 +271,10 @@ export default function ExpensesPage() {
               <div>
                 <Label>分類</Label>
                 <Select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                  {categories.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  {categoryOptions.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+                  {!categoryOptions.some(o => o.key === form.category) && form.category && (
+                    <option value={form.category}>{EXPENSE_CATEGORY_LABELS[form.category] ?? form.category}（已停用）</option>
+                  )}
                 </Select>
               </div>
             </div>
